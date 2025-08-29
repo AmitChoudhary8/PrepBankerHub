@@ -8,6 +8,7 @@ import QuizList from './components/User/QuizList'
 import QuizPlayer from './components/User/QuizPlayer'
 import PDFList from './components/User/PDFList'
 import ExamCalendar from './components/User/ExamCalendar'
+import UserRequestForm from './components/User/UserRequestForm'
 import './App.css'
 
 function App() {
@@ -18,15 +19,12 @@ function App() {
   const [showAdminLogin, setShowAdminLogin] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   
-  // States for Quiz functionality
+  // States for functionality
   const [showQuizList, setShowQuizList] = useState(false)
   const [selectedQuiz, setSelectedQuiz] = useState(null)
-  
-  // State for PDF functionality
   const [showPDFList, setShowPDFList] = useState(false)
-  
-  // New state for Exam Calendar functionality
   const [showExamCalendar, setShowExamCalendar] = useState(false)
+  const [showRequestForm, setShowRequestForm] = useState(false)
 
   useEffect(() => {
     // Check if user is logged in
@@ -44,7 +42,7 @@ function App() {
     if (adminSession) {
       try {
         const session = JSON.parse(adminSession)
-        const twoHours = 2 * 60 * 60 * 1000 // 2 hours timeout
+        const twoHours = 2 * 60 * 60 * 1000
         if (Date.now() - session.loginTime < twoHours) {
           setIsAdmin(true)
         } else {
@@ -60,11 +58,7 @@ function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    // Reset all states when user logs out
-    setShowQuizList(false)
-    setSelectedQuiz(null)
-    setShowPDFList(false)
-    setShowExamCalendar(false)
+    resetAllStates()
   }
 
   const handleAdminLogout = () => {
@@ -73,24 +67,23 @@ function App() {
     alert('Admin logged out successfully!')
   }
 
-  const handleQuizComplete = () => {
-    setSelectedQuiz(null)
-    setShowQuizList(false)
-  }
-
-  const resetToHome = () => {
+  const resetAllStates = () => {
     setShowQuizList(false)
     setSelectedQuiz(null)
     setShowPDFList(false)
     setShowExamCalendar(false)
+    setShowRequestForm(false)
   }
 
-  // If admin is logged in, show admin dashboard instead of regular website
+  const resetToHome = () => {
+    resetAllStates()
+  }
+
+  // If admin is logged in, show admin dashboard
   if (isAdmin) {
     return <AdminDashboard onLogout={handleAdminLogout} />
   }
 
-  // Regular website for non-admin users
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       {/* Header */}
@@ -114,7 +107,6 @@ function App() {
               {darkMode ? '☀️ Light' : '🌙 Dark'}
             </button>
 
-            {/* Regular User Login/Logout */}
             {user && !isAdmin ? (
               <div className="flex items-center space-x-2">
                 <span className="text-sm">Hi, {user.user_metadata?.name || 'User'}!</span>
@@ -127,7 +119,6 @@ function App() {
               </div>
             ) : null}
 
-            {/* Login and Admin Buttons (when not logged in) */}
             {!user && !isAdmin ? (
               <div className="flex items-center space-x-2">
                 <button
@@ -151,41 +142,35 @@ function App() {
       {/* Main Content */}
       <main className="p-6 max-w-6xl mx-auto">
         
-        {/* Home Page - Show when user is logged in but no section selected */}
-        {user && !showQuizList && !selectedQuiz && !showPDFList && !showExamCalendar && (
+        {/* Home Page */}
+        {user && !showQuizList && !selectedQuiz && !showPDFList && !showExamCalendar && !showRequestForm && (
           <>
             <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold mb-4">
-                Welcome to PrepBankerHub
-              </h2>
+              <h2 className="text-4xl font-bold mb-4">Welcome to PrepBankerHub</h2>
               <p className="text-xl text-gray-600 dark:text-gray-300">
                 Complete Banking Exam Preparation Platform
               </p>
               
-              {/* Free Banner */}
               <div className="mt-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white">
-                <h3 className="text-2xl font-bold">
-                  👉 All Resources on this Website are 100% Free
-                </h3>
+                <h3 className="text-2xl font-bold">👉 All Resources on this Website are 100% Free</h3>
                 <p className="mt-2">Access PDFs, Quizzes, and Study Materials</p>
               </div>
             </div>
 
-            {/* User Status */}
             <div className="mb-6 p-4 bg-green-100 dark:bg-green-800 rounded-lg text-center">
               <p className="text-green-800 dark:text-green-200">
                 ✅ Welcome back, {user.user_metadata?.name || 'User'}! You are logged in.
               </p>
             </div>
 
-            {/* Quick Links */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            {/* Quick Links - Updated with Request Form */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
                 <h3 className="text-xl font-bold mb-2">📚 Practice Quizzes</h3>
-                <p className="text-gray-600 dark:text-gray-300">Test your knowledge with interactive quizzes</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Test your knowledge with interactive quizzes</p>
                 <button 
                   onClick={() => setShowQuizList(true)}
-                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
                 >
                   Start Quiz
                 </button>
@@ -193,10 +178,10 @@ function App() {
               
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
                 <h3 className="text-xl font-bold mb-2">📄 PDF Downloads</h3>
-                <p className="text-gray-600 dark:text-gray-300">Download study materials and notes</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Download study materials and notes</p>
                 <button 
                   onClick={() => setShowPDFList(true)}
-                  className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                  className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
                 >
                   View PDFs
                 </button>
@@ -204,19 +189,30 @@ function App() {
               
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
                 <h3 className="text-xl font-bold mb-2">📅 Exam Calendar</h3>
-                <p className="text-gray-600 dark:text-gray-300">Track important exam dates</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Track important exam dates</p>
                 <button 
                   onClick={() => setShowExamCalendar(true)}
-                  className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                  className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
                 >
                   View Calendar
+                </button>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
+                <h3 className="text-xl font-bold mb-2">📝 Submit Request</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Request PDFs or send feedback</p>
+                <button 
+                  onClick={() => setShowRequestForm(true)}
+                  className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
+                >
+                  Send Request
                 </button>
               </div>
             </div>
           </>
         )}
 
-        {/* Quiz List - Show when user wants to select a quiz */}
+        {/* Quiz List */}
         {user && showQuizList && !selectedQuiz && (
           <div>
             <button
@@ -234,7 +230,7 @@ function App() {
           </div>
         )}
 
-        {/* Quiz Player - Show when user is taking a quiz */}
+        {/* Quiz Player */}
         {user && selectedQuiz && (
           <QuizPlayer
             quiz={selectedQuiz}
@@ -246,8 +242,8 @@ function App() {
           />
         )}
 
-        {/* PDF List - Show when user wants to browse PDFs */}
-        {user && showPDFList && !showQuizList && !selectedQuiz && !showExamCalendar && (
+        {/* PDF List */}
+        {user && showPDFList && !showQuizList && !selectedQuiz && !showExamCalendar && !showRequestForm && (
           <div>
             <button
               onClick={() => setShowPDFList(false)}
@@ -259,8 +255,8 @@ function App() {
           </div>
         )}
 
-        {/* Exam Calendar - Show when user wants to view calendar */}
-        {user && showExamCalendar && !showQuizList && !selectedQuiz && !showPDFList && (
+        {/* Exam Calendar */}
+        {user && showExamCalendar && !showQuizList && !selectedQuiz && !showPDFList && !showRequestForm && (
           <div>
             <button
               onClick={() => setShowExamCalendar(false)}
@@ -272,41 +268,47 @@ function App() {
           </div>
         )}
 
+        {/* User Request Form */}
+        {user && showRequestForm && !showQuizList && !selectedQuiz && !showPDFList && !showExamCalendar && (
+          <div>
+            <button
+              onClick={() => setShowRequestForm(false)}
+              className="mb-6 flex items-center text-orange-600 hover:text-orange-800 font-medium"
+            >
+              ← Back to Home
+            </button>
+            <UserRequestForm user={user} />
+          </div>
+        )}
+
         {/* Welcome Page for Non-Logged Users */}
         {!user && !isAdmin && (
           <>
             <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold mb-4">
-                Welcome to PrepBankerHub
-              </h2>
+              <h2 className="text-4xl font-bold mb-4">Welcome to PrepBankerHub</h2>
               <p className="text-xl text-gray-600 dark:text-gray-300">
                 Complete Banking Exam Preparation Platform
               </p>
               
-              {/* Free Banner */}
               <div className="mt-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white">
-                <h3 className="text-2xl font-bold">
-                  👉 All Resources on this Website are 100% Free
-                </h3>
+                <h3 className="text-2xl font-bold">👉 All Resources on this Website are 100% Free</h3>
                 <p className="mt-2">Access PDFs, Quizzes, and Study Materials</p>
               </div>
             </div>
 
-            {/* Login Prompt */}
             <div className="mb-6 p-4 bg-yellow-100 dark:bg-yellow-800 rounded-lg text-center">
               <p className="text-yellow-800 dark:text-yellow-200">
                 📢 Please login to access quizzes, download PDFs, and track your progress!
               </p>
             </div>
 
-            {/* Features Preview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h3 className="text-xl font-bold mb-2">📚 Practice Quizzes</h3>
-                <p className="text-gray-600 dark:text-gray-300">Test your knowledge with interactive quizzes</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Test your knowledge with interactive quizzes</p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="mt-4 bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
+                  className="w-full bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
                 >
                   Login to Access
                 </button>
@@ -314,10 +316,10 @@ function App() {
               
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h3 className="text-xl font-bold mb-2">📄 PDF Downloads</h3>
-                <p className="text-gray-600 dark:text-gray-300">Download study materials and notes</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Download study materials and notes</p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="mt-4 bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
+                  className="w-full bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
                 >
                   Login to Access
                 </button>
@@ -325,10 +327,21 @@ function App() {
               
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
                 <h3 className="text-xl font-bold mb-2">📅 Exam Calendar</h3>
-                <p className="text-gray-600 dark:text-gray-300">Track important exam dates</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Track important exam dates</p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="mt-4 bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
+                  className="w-full bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
+                >
+                  Login to Access
+                </button>
+              </div>
+
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
+                <h3 className="text-xl font-bold mb-2">📝 Submit Request</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">Request PDFs or send feedback</p>
+                <button 
+                  onClick={() => setShowLogin(true)}
+                  className="w-full bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
                 >
                   Login to Access
                 </button>
@@ -345,7 +358,7 @@ function App() {
         </div>
       </footer>
 
-      {/* Login Modal */}
+      {/* Modals */}
       {showLogin && (
         <LoginModal
           onClose={() => setShowLogin(false)}
@@ -356,7 +369,6 @@ function App() {
         />
       )}
 
-      {/* Signup Modal */}
       {showSignup && (
         <SignupModal
           onClose={() => setShowSignup(false)}
@@ -367,7 +379,6 @@ function App() {
         />
       )}
 
-      {/* Admin Login Modal */}
       {showAdminLogin && (
         <AdminLogin
           onClose={() => setShowAdminLogin(false)}
