@@ -3,6 +3,7 @@ import { supabase } from './utils/supabase'
 import LoginModal from './components/Auth/LoginModal'
 import SignupModal from './components/Auth/SignupModal'
 import AdminLogin from './components/Admin/AdminLogin'
+import AdminDashboard from './components/Admin/AdminDashboard'
 import './App.css'
 
 function App() {
@@ -53,6 +54,12 @@ function App() {
     alert('Admin logged out successfully!')
   }
 
+  // If admin is logged in, show admin dashboard instead of regular website
+  if (isAdmin) {
+    return <AdminDashboard onLogout={handleAdminLogout} />
+  }
+
+  // Regular website for non-admin users
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       {/* Header */}
@@ -78,21 +85,6 @@ function App() {
                 <button
                   onClick={handleLogout}
                   className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors text-sm"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : null}
-
-            {/* Admin Mode Display */}
-            {isAdmin ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm bg-red-100 px-2 py-1 rounded text-red-800 font-medium">
-                  👨‍💼 Admin Mode
-                </span>
-                <button
-                  onClick={handleAdminLogout}
-                  className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg transition-colors text-sm"
                 >
                   Logout
                 </button>
@@ -148,15 +140,6 @@ function App() {
           </div>
         )}
 
-        {/* Admin Status */}
-        {isAdmin && (
-          <div className="mb-6 p-4 bg-red-100 dark:bg-red-800 rounded-lg text-center">
-            <p className="text-red-800 dark:text-red-200">
-              🔥 Admin Panel Access Granted! You can manage quizzes, PDFs, and users.
-            </p>
-          </div>
-        )}
-
         {/* Login Prompt for Non-Logged Users */}
         {!user && !isAdmin && (
           <div className="mb-6 p-4 bg-yellow-100 dark:bg-yellow-800 rounded-lg text-center">
@@ -171,7 +154,7 @@ function App() {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
             <h3 className="text-xl font-bold mb-2">📚 Practice Quizzes</h3>
             <p className="text-gray-600 dark:text-gray-300">Test your knowledge with interactive quizzes</p>
-            {(user || isAdmin) && (
+            {user && (
               <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                 Start Quiz
               </button>
@@ -181,7 +164,7 @@ function App() {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
             <h3 className="text-xl font-bold mb-2">📄 PDF Downloads</h3>
             <p className="text-gray-600 dark:text-gray-300">Download study materials and notes</p>
-            {(user || isAdmin) && (
+            {user && (
               <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                 View PDFs
               </button>
@@ -191,7 +174,7 @@ function App() {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
             <h3 className="text-xl font-bold mb-2">📅 Exam Calendar</h3>
             <p className="text-gray-600 dark:text-gray-300">Track important exam dates</p>
-            {(user || isAdmin) && (
+            {user && (
               <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                 View Calendar
               </button>
