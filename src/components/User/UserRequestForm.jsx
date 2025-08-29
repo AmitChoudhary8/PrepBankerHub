@@ -50,7 +50,6 @@ const UserRequestForm = ({ user }) => {
     setSuccess('')
 
     try {
-      // Get current user session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError) {
@@ -60,36 +59,32 @@ const UserRequestForm = ({ user }) => {
         return
       }
 
-      // Prepare insert data
       const insertData = {
-        name: formData.name.trim(),
+        title: formData.name.trim(),
+        description: formData.message.trim(),
         email: formData.email.trim(),
-        message: formData.message.trim(),
-        pdf_link: formData.pdfLink.trim() || null,
+        attachment_url: formData.pdfLink.trim() || null,
         request_type: formData.requestType,
         status: 'pending',
         created_at: new Date()
       }
 
-      // Add user_id if user is logged in
       if (session?.user?.id) {
         insertData.user_id = session.user.id
       }
 
-      console.log('Inserting data:', insertData) // Debug log
+      console.log('Inserting data:', insertData)
 
-      // Insert into Supabase
       const { data, error: insertError } = await supabase
         .from('user_requests')
         .insert([insertData])
         .select()
 
-      console.log('Supabase response:', { data, error: insertError }) // Debug log
+      console.log('Supabase response:', { data, error: insertError })
 
       if (insertError) {
         console.error('Insert error:', insertError)
         
-        // Show specific error messages
         if (insertError.code === '42501') {
           setError('🔒 Permission denied. Please make sure you are logged in.')
         } else if (insertError.code === '23502') {
@@ -100,14 +95,12 @@ const UserRequestForm = ({ user }) => {
           setError('❌ Database Error: ' + insertError.message)
         }
         
-        // Also show alert for mobile debugging
         alert('Error Details: ' + JSON.stringify(insertError))
         
       } else {
         console.log('Success:', data)
         setSuccess('✅ Your request has been submitted successfully! We will review it and get back to you soon.')
         
-        // Reset form
         setFormData({
           name: user?.user_metadata?.name || '',
           email: user?.email || '',
@@ -116,15 +109,12 @@ const UserRequestForm = ({ user }) => {
           requestType: 'general'
         })
         
-        // Show success alert for mobile
         alert('✅ Request submitted successfully!')
       }
 
     } catch (err) {
       console.error('Catch error:', err)
       setError('🌐 Network Error: ' + err.message + '. Please check your internet connection and try again.')
-      
-      // Show alert for mobile debugging
       alert('Network Error: ' + err.message)
     }
 
@@ -132,164 +122,162 @@ const UserRequestForm = ({ user }) => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <div className="bg-white rounded-lg shadow-lg p-8">
-        <h2 className="text-3xl font-bold mb-6 text-center">📝 Submit Your Request</h2>
-        
-        <p className="text-gray-600 text-center mb-8">
-          Have a suggestion, feedback, or want to request a PDF? Let us know!
-        </p>
+    <div className="p-2 md:p-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-lg shadow-lg p-4 md:p-8">
+          <h2 className="text-xl md:text-3xl font-bold mb-4 md:mb-6 text-center">
+            📝 Submit Your Request
+          </h2>
+          
+          <p className="text-sm md:text-base text-gray-600 text-center mb-6 md:mb-8">
+            Have a suggestion, feedback, or want to request a PDF? Let us know!
+          </p>
 
-        {/* Error Display */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-r-lg">
-            <div className="font-semibold">Error:</div>
-            <div>{error}</div>
-          </div>
-        )}
+          {/* Error Display - Mobile Optimized */}
+          {error && (
+            <div className="mb-4 md:mb-6 p-3 md:p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-r-lg text-sm md:text-base">
+              <div className="font-semibold">Error:</div>
+              <div>{error}</div>
+            </div>
+          )}
 
-        {/* Success Display */}
-        {success && (
-          <div className="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-r-lg">
-            <div className="font-semibold">Success!</div>
-            <div>{success}</div>
-          </div>
-        )}
+          {/* Success Display - Mobile Optimized */}
+          {success && (
+            <div className="mb-4 md:mb-6 p-3 md:p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-r-lg text-sm md:text-base">
+              <div className="font-semibold">Success!</div>
+              <div>{success}</div>
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Full Name */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Full Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter your full name"
-              required
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+            {/* Full Name - Mobile Friendly */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Full Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full p-3 md:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                style={{ fontSize: '16px' }} // Prevents zoom on iOS
+                placeholder="Enter your full name"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            {/* Email - Mobile Friendly */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Email Address <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full p-3 md:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                style={{ fontSize: '16px' }}
+                placeholder="Enter your email address"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            {/* Request Type - Mobile Friendly */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Request Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="requestType"
+                value={formData.requestType}
+                onChange={handleChange}
+                className="w-full p-3 md:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                style={{ fontSize: '16px' }}
+                disabled={loading}
+              >
+                <option value="general">General Inquiry</option>
+                <option value="pdf_request">PDF Request</option>
+                <option value="quiz_suggestion">Quiz Suggestion</option>
+                <option value="feedback">Feedback</option>
+                <option value="bug_report">Bug Report</option>
+                <option value="feature_request">Feature Request</option>
+              </select>
+            </div>
+
+            {/* Message - Mobile Friendly */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Message <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                rows="5"
+                className="w-full p-3 md:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
+                style={{ fontSize: '16px' }}
+                placeholder="Please describe your request in detail..."
+                required
+                disabled={loading}
+              />
+            </div>
+
+            {/* PDF Link - Mobile Friendly */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                PDF Link <span className="text-gray-500">(Optional)</span>
+              </label>
+              <input
+                type="url"
+                name="pdfLink"
+                value={formData.pdfLink}
+                onChange={handleChange}
+                className="w-full p-3 md:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                style={{ fontSize: '16px' }}
+                placeholder="https://example.com/your-pdf-link"
+                disabled={loading}
+              />
+              <p className="text-sm text-gray-500 mt-1">
+                If you're requesting a specific PDF or want to share a resource, paste the link here
+              </p>
+            </div>
+
+            {/* Submit Button - Mobile Optimized */}
+            <button
+              type="submit"
               disabled={loading}
-            />
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Email Address <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter your email address"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          {/* Request Type */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Request Type <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="requestType"
-              value={formData.requestType}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              disabled={loading}
+              className="w-full bg-blue-600 text-white py-4 md:py-5 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-lg"
+              style={{ minHeight: '56px' }} // Large touch target
             >
-              <option value="general">General Inquiry</option>
-              <option value="pdf_request">PDF Request</option>
-              <option value="quiz_suggestion">Quiz Suggestion</option>
-              <option value="feedback">Feedback</option>
-              <option value="bug_report">Bug Report</option>
-              <option value="feature_request">Feature Request</option>
-            </select>
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Submitting...
+                </span>
+              ) : (
+                '📤 Submit Request'
+              )}
+            </button>
+          </form>
+
+          {/* Guidelines - Mobile Optimized */}
+          <div className="mt-6 md:mt-8 p-3 md:p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-semibold mb-2 text-sm md:text-base">📋 Guidelines:</h4>
+            <ul className="text-xs md:text-sm text-gray-600 space-y-1">
+              <li>• Please be specific and clear in your message</li>
+              <li>• For PDF requests, mention the exam name and type</li>
+              <li>• We typically respond within 24-48 hours</li>
+              <li>• All resources shared will be made free for everyone</li>
+            </ul>
           </div>
-
-          {/* Message */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Message <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              name="message"
-              value={formData.message}
-              onChange={handleChange}
-              rows="5"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Please describe your request in detail..."
-              required
-              disabled={loading}
-            />
-          </div>
-
-          {/* PDF Link */}
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              PDF Link <span className="text-gray-500">(Optional)</span>
-            </label>
-            <input
-              type="url"
-              name="pdfLink"
-              value={formData.pdfLink}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="https://example.com/your-pdf-link"
-              disabled={loading}
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              If you're requesting a specific PDF or want to share a resource, paste the link here
-            </p>
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-lg"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Submitting...
-              </span>
-            ) : (
-              '📤 Submit Request'
-            )}
-          </button>
-        </form>
-
-        {/* Guidelines */}
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-semibold mb-2">📋 Guidelines:</h4>
-          <ul className="text-sm text-gray-600 space-y-1">
-            <li>• Please be specific and clear in your message</li>
-            <li>• For PDF requests, mention the exam name and type</li>
-            <li>• We typically respond within 24-48 hours</li>
-            <li>• All resources shared will be made free for everyone</li>
-          </ul>
         </div>
-
-        {/* Debug Info (Only for testing - remove in production) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h4 className="font-semibold text-yellow-800">Debug Info:</h4>
-            <p className="text-sm text-yellow-700">
-              User: {user?.email || 'Not logged in'} | 
-              Form Valid: {validateForm() ? 'Yes' : 'No'} |
-              Loading: {loading ? 'Yes' : 'No'}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   )
