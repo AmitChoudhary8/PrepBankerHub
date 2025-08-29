@@ -19,7 +19,6 @@ function App() {
   const [showAdminLogin, setShowAdminLogin] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   
-  // States for functionality
   const [showQuizList, setShowQuizList] = useState(false)
   const [selectedQuiz, setSelectedQuiz] = useState(null)
   const [showPDFList, setShowPDFList] = useState(false)
@@ -27,17 +26,14 @@ function App() {
   const [showRequestForm, setShowRequestForm] = useState(false)
 
   useEffect(() => {
-    // Check if user is logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
     })
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
     })
 
-    // Check Admin Session
     const adminSession = localStorage.getItem('adminSession')
     if (adminSession) {
       try {
@@ -79,59 +75,73 @@ function App() {
     resetAllStates()
   }
 
-  // If admin is logged in, show admin dashboard
   if (isAdmin) {
     return <AdminDashboard onLogout={handleAdminLogout} />
   }
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      {/* Header */}
-      <header className="bg-blue-600 text-white p-4 shadow-lg">
+      {/* Mobile-Optimized Header */}
+      <header className="bg-blue-600 text-white p-3 md:p-4 shadow-lg">
         <div className="flex justify-between items-center max-w-6xl mx-auto">
-          <div className="flex items-center space-x-2">
+          {/* Logo Section - Mobile Responsive */}
+          <div className="flex items-center space-x-1 md:space-x-2">
             <button 
               onClick={resetToHome}
-              className="text-2xl font-bold hover:text-blue-200 transition-colors"
+              className="text-lg md:text-2xl font-bold hover:text-blue-200 transition-colors"
             >
-              PrepBankerHub
+              <span className="hidden sm:inline">PrepBankerHub</span>
+              <span className="sm:hidden">PBH</span>
             </button>
-            <span className="text-blue-200">🏦</span>
+            <span className="text-blue-200 text-lg md:text-xl">🏦</span>
           </div>
           
-          <div className="flex items-center space-x-4">
+          {/* Mobile-Optimized Controls */}
+          <div className="flex items-center space-x-1 md:space-x-4">
+            {/* Dark Mode Toggle - Compact on mobile */}
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded-lg transition-colors"
+              className="bg-blue-700 hover:bg-blue-800 px-2 md:px-4 py-1 md:py-2 rounded-lg transition-colors text-sm"
+              style={{ minHeight: '44px' }} // iOS touch target
             >
-              {darkMode ? '☀️ Light' : '🌙 Dark'}
+              <span className="md:hidden">{darkMode ? '☀️' : '🌙'}</span>
+              <span className="hidden md:inline">{darkMode ? '☀️ Light' : '🌙 Dark'}</span>
             </button>
 
+            {/* User Section - Mobile Optimized */}
             {user && !isAdmin ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm">Hi, {user.user_metadata?.name || 'User'}!</span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                <span className="text-xs sm:text-sm hidden sm:block truncate max-w-24 md:max-w-none">
+                  Hi, {user.user_metadata?.name || 'User'}!
+                </span>
                 <button
                   onClick={handleLogout}
-                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors text-sm"
+                  className="bg-red-600 hover:bg-red-700 px-2 md:px-4 py-2 rounded-lg transition-colors text-xs md:text-sm font-medium"
+                  style={{ minHeight: '44px' }}
                 >
-                  Logout
+                  <span className="sm:hidden">Exit</span>
+                  <span className="hidden sm:inline">Logout</span>
                 </button>
               </div>
             ) : null}
 
+            {/* Login Buttons - Mobile Stack */}
             {!user && !isAdmin ? (
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
                 <button
                   onClick={() => setShowLogin(true)}
-                  className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors"
+                  className="bg-green-600 hover:bg-green-700 px-3 md:px-4 py-2 rounded-lg transition-colors text-xs md:text-sm font-medium"
+                  style={{ minHeight: '44px' }}
                 >
                   Login
                 </button>
                 <button
                   onClick={() => setShowAdminLogin(true)}
-                  className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg transition-colors text-sm"
+                  className="bg-red-600 hover:bg-red-700 px-2 md:px-3 py-2 rounded-lg transition-colors text-xs"
+                  style={{ minHeight: '44px' }}
                 >
-                  🔐 Admin
+                  🔐
+                  <span className="hidden sm:inline ml-1">Admin</span>
                 </button>
               </div>
             ) : null}
@@ -139,71 +149,87 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="p-6 max-w-6xl mx-auto">
+      {/* Main Content - Mobile Responsive */}
+      <main className="p-3 md:p-6 max-w-6xl mx-auto">
         
-        {/* Home Page */}
+        {/* Home Page - Mobile Optimized */}
         {user && !showQuizList && !selectedQuiz && !showPDFList && !showExamCalendar && !showRequestForm && (
           <>
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold mb-4">Welcome to PrepBankerHub</h2>
-              <p className="text-xl text-gray-600 dark:text-gray-300">
+            <div className="text-center mb-6 md:mb-8">
+              <h2 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4">
+                Welcome to PrepBankerHub
+              </h2>
+              <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 px-4">
                 Complete Banking Exam Preparation Platform
               </p>
               
-              <div className="mt-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white">
-                <h3 className="text-2xl font-bold">👉 All Resources on this Website are 100% Free</h3>
-                <p className="mt-2">Access PDFs, Quizzes, and Study Materials</p>
+              <div className="mt-4 md:mt-6 p-4 md:p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white mx-2 md:mx-0">
+                <h3 className="text-lg md:text-2xl font-bold">
+                  👉 All Resources on this Website are 100% Free
+                </h3>
+                <p className="mt-2 text-sm md:text-base">Access PDFs, Quizzes, and Study Materials</p>
               </div>
             </div>
 
-            <div className="mb-6 p-4 bg-green-100 dark:bg-green-800 rounded-lg text-center">
-              <p className="text-green-800 dark:text-green-200">
+            <div className="mb-4 md:mb-6 p-3 md:p-4 bg-green-100 dark:bg-green-800 rounded-lg text-center">
+              <p className="text-green-800 dark:text-green-200 text-sm md:text-base">
                 ✅ Welcome back, {user.user_metadata?.name || 'User'}! You are logged in.
               </p>
             </div>
 
-            {/* Quick Links - Updated with Request Form */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
-                <h3 className="text-xl font-bold mb-2">📚 Practice Quizzes</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">Test your knowledge with interactive quizzes</p>
+            {/* Mobile-Optimized Quick Links */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-6 md:mt-8">
+              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
+                <h3 className="text-lg md:text-xl font-bold mb-2">📚 Practice Quizzes</h3>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
+                  Test your knowledge with interactive quizzes
+                </p>
                 <button 
                   onClick={() => setShowQuizList(true)}
-                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  className="w-full bg-blue-600 text-white px-3 md:px-4 py-3 rounded-lg hover:bg-blue-700 text-sm md:text-base font-medium"
+                  style={{ minHeight: '44px' }}
                 >
                   Start Quiz
                 </button>
               </div>
               
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
-                <h3 className="text-xl font-bold mb-2">📄 PDF Downloads</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">Download study materials and notes</p>
+              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
+                <h3 className="text-lg md:text-xl font-bold mb-2">📄 PDF Downloads</h3>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
+                  Download study materials and notes
+                </p>
                 <button 
                   onClick={() => setShowPDFList(true)}
-                  className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                  className="w-full bg-green-600 text-white px-3 md:px-4 py-3 rounded-lg hover:bg-green-700 text-sm md:text-base font-medium"
+                  style={{ minHeight: '44px' }}
                 >
                   View PDFs
                 </button>
               </div>
               
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
-                <h3 className="text-xl font-bold mb-2">📅 Exam Calendar</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">Track important exam dates</p>
+              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
+                <h3 className="text-lg md:text-xl font-bold mb-2">📅 Exam Calendar</h3>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
+                  Track important exam dates
+                </p>
                 <button 
                   onClick={() => setShowExamCalendar(true)}
-                  className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                  className="w-full bg-purple-600 text-white px-3 md:px-4 py-3 rounded-lg hover:bg-purple-700 text-sm md:text-base font-medium"
+                  style={{ minHeight: '44px' }}
                 >
                   View Calendar
                 </button>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
-                <h3 className="text-xl font-bold mb-2">📝 Submit Request</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">Request PDFs or send feedback</p>
+              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
+                <h3 className="text-lg md:text-xl font-bold mb-2">📝 Submit Request</h3>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
+                  Request PDFs or send feedback
+                </p>
                 <button 
                   onClick={() => setShowRequestForm(true)}
-                  className="w-full bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
+                  className="w-full bg-orange-600 text-white px-3 md:px-4 py-3 rounded-lg hover:bg-orange-700 text-sm md:text-base font-medium"
+                  style={{ minHeight: '44px' }}
                 >
                   Send Request
                 </button>
@@ -217,7 +243,8 @@ function App() {
           <div>
             <button
               onClick={() => setShowQuizList(false)}
-              className="mb-6 flex items-center text-blue-600 hover:text-blue-800 font-medium"
+              className="mb-4 md:mb-6 flex items-center text-blue-600 hover:text-blue-800 font-medium text-sm md:text-base"
+              style={{ minHeight: '44px' }}
             >
               ← Back to Home
             </button>
@@ -247,7 +274,8 @@ function App() {
           <div>
             <button
               onClick={() => setShowPDFList(false)}
-              className="mb-6 flex items-center text-green-600 hover:text-green-800 font-medium"
+              className="mb-4 md:mb-6 flex items-center text-green-600 hover:text-green-800 font-medium text-sm md:text-base"
+              style={{ minHeight: '44px' }}
             >
               ← Back to Home
             </button>
@@ -260,7 +288,8 @@ function App() {
           <div>
             <button
               onClick={() => setShowExamCalendar(false)}
-              className="mb-6 flex items-center text-purple-600 hover:text-purple-800 font-medium"
+              className="mb-4 md:mb-6 flex items-center text-purple-600 hover:text-purple-800 font-medium text-sm md:text-base"
+              style={{ minHeight: '44px' }}
             >
               ← Back to Home
             </button>
@@ -273,7 +302,8 @@ function App() {
           <div>
             <button
               onClick={() => setShowRequestForm(false)}
-              className="mb-6 flex items-center text-orange-600 hover:text-orange-800 font-medium"
+              className="mb-4 md:mb-6 flex items-center text-orange-600 hover:text-orange-800 font-medium text-sm md:text-base"
+              style={{ minHeight: '44px' }}
             >
               ← Back to Home
             </button>
@@ -281,67 +311,83 @@ function App() {
           </div>
         )}
 
-        {/* Welcome Page for Non-Logged Users */}
+        {/* Welcome Page for Non-Logged Users - Mobile Optimized */}
         {!user && !isAdmin && (
           <>
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold mb-4">Welcome to PrepBankerHub</h2>
-              <p className="text-xl text-gray-600 dark:text-gray-300">
+            <div className="text-center mb-6 md:mb-8">
+              <h2 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4">
+                Welcome to PrepBankerHub
+              </h2>
+              <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 px-4">
                 Complete Banking Exam Preparation Platform
               </p>
               
-              <div className="mt-6 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white">
-                <h3 className="text-2xl font-bold">👉 All Resources on this Website are 100% Free</h3>
-                <p className="mt-2">Access PDFs, Quizzes, and Study Materials</p>
+              <div className="mt-4 md:mt-6 p-4 md:p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white mx-2 md:mx-0">
+                <h3 className="text-lg md:text-2xl font-bold">
+                  👉 All Resources on this Website are 100% Free
+                </h3>
+                <p className="mt-2 text-sm md:text-base">Access PDFs, Quizzes, and Study Materials</p>
               </div>
             </div>
 
-            <div className="mb-6 p-4 bg-yellow-100 dark:bg-yellow-800 rounded-lg text-center">
-              <p className="text-yellow-800 dark:text-yellow-200">
+            <div className="mb-4 md:mb-6 p-3 md:p-4 bg-yellow-100 dark:bg-yellow-800 rounded-lg text-center">
+              <p className="text-yellow-800 dark:text-yellow-200 text-sm md:text-base">
                 📢 Please login to access quizzes, download PDFs, and track your progress!
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-                <h3 className="text-xl font-bold mb-2">📚 Practice Quizzes</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">Test your knowledge with interactive quizzes</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-6 md:mt-8">
+              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg md:text-xl font-bold mb-2">📚 Practice Quizzes</h3>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
+                  Test your knowledge with interactive quizzes
+                </p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="w-full bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
+                  className="w-full bg-gray-400 text-white px-3 md:px-4 py-3 rounded-lg cursor-pointer hover:bg-gray-500 text-sm md:text-base"
+                  style={{ minHeight: '44px' }}
                 >
                   Login to Access
                 </button>
               </div>
               
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-                <h3 className="text-xl font-bold mb-2">📄 PDF Downloads</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">Download study materials and notes</p>
+              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg md:text-xl font-bold mb-2">📄 PDF Downloads</h3>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
+                  Download study materials and notes
+                </p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="w-full bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
+                  className="w-full bg-gray-400 text-white px-3 md:px-4 py-3 rounded-lg cursor-pointer hover:bg-gray-500 text-sm md:text-base"
+                  style={{ minHeight: '44px' }}
                 >
                   Login to Access
                 </button>
               </div>
               
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-                <h3 className="text-xl font-bold mb-2">📅 Exam Calendar</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">Track important exam dates</p>
+              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg md:text-xl font-bold mb-2">📅 Exam Calendar</h3>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
+                  Track important exam dates
+                </p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="w-full bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
+                  className="w-full bg-gray-400 text-white px-3 md:px-4 py-3 rounded-lg cursor-pointer hover:bg-gray-500 text-sm md:text-base"
+                  style={{ minHeight: '44px' }}
                 >
                   Login to Access
                 </button>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
-                <h3 className="text-xl font-bold mb-2">📝 Submit Request</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">Request PDFs or send feedback</p>
+              <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
+                <h3 className="text-lg md:text-xl font-bold mb-2">📝 Submit Request</h3>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
+                  Request PDFs or send feedback
+                </p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="w-full bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
+                  className="w-full bg-gray-400 text-white px-3 md:px-4 py-3 rounded-lg cursor-pointer hover:bg-gray-500 text-sm md:text-base"
+                  style={{ minHeight: '44px' }}
                 >
                   Login to Access
                 </button>
@@ -351,10 +397,10 @@ function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white p-4 mt-12">
+      {/* Footer - Mobile Friendly */}
+      <footer className="bg-gray-800 text-white p-3 md:p-4 mt-8 md:mt-12">
         <div className="text-center">
-          <p>&copy; 2025 PrepBankerHub. All resources are completely free!</p>
+          <p className="text-sm md:text-base">&copy; 2025 PrepBankerHub. All resources are completely free!</p>
         </div>
       </footer>
 
