@@ -21,7 +21,7 @@ const QuizManager = () => {
   }, [])
 
   const fetchQuizzes = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('quizzes')
       .select(`
         *,
@@ -30,51 +30,76 @@ const QuizManager = () => {
       `)
       .order('created_at', { ascending: false })
     
-    setQuizzes(data || [])
+    if (error) {
+      console.error('Error fetching quizzes:', error)
+    } else {
+      setQuizzes(data || [])
+    }
   }
 
   const fetchCategories = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('quiz_categories')
       .select('*')
-    setCategories(data || [])
+    
+    if (error) {
+      console.error('Error fetching categories:', error)
+    } else {
+      console.log('Categories loaded:', data)
+      setCategories(data || [])
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (editingQuiz) {
-      // Update existing quiz
-      const { error } = await supabase
-        .from('quizzes')
-        .update(formData)
-        .eq('id', editingQuiz.id)
-        
-      if (!error) {
-        alert('Quiz updated successfully!')
-        setEditingQuiz(null)
+    try {
+      if (editingQuiz) {
+        // Update existing quiz
+        const { data, error } = await supabase
+          .from('quizzes')
+          .update(formData)
+          .eq('id', editingQuiz.id)
+          .select()
+          
+        if (error) {
+          console.error('Update error:', error)
+          alert('Error updating quiz: ' + error.message)
+        } else {
+          alert('✅ Quiz updated successfully!')
+          setEditingQuiz(null)
+          console.log('Updated data:', data)
+        }
+      } else {
+        // Create new quiz
+        const { data, error } = await supabase
+          .from('quizzes')
+          .insert([formData])
+          .select()
+          
+        if (error) {
+          console.error('Insert error:', error)
+          alert('Error creating quiz: ' + error.message)
+        } else {
+          alert('✅ Quiz created successfully!')
+          setShowAddForm(false)
+          console.log('Inserted data:', data)
+        }
       }
-    } else {
-      // Create new quiz
-      const { error } = await supabase
-        .from('quizzes')
-        .insert([formData])
-        
-      if (!error) {
-        alert('Quiz created successfully!')
-        setShowAddForm(false)
-      }
+      
+      // Reset form and refresh data
+      setFormData({
+        title: '',
+        category_id: '',
+        description: '',
+        time_limit: 30,
+        difficulty: 'Medium'
+      })
+      fetchQuizzes()
+    } catch (err) {
+      console.error('Unexpected error:', err)
+      alert('Unexpected error occurred')
     }
-    
-    // Reset form and refresh data
-    setFormData({
-      title: '',
-      category_id: '',
-      description: '',
-      time_limit: 30,
-      difficulty: 'Medium'
-    })
-    fetchQuizzes()
   }
 
   const handleEdit = (quiz) => {
@@ -90,13 +115,15 @@ const QuizManager = () => {
   }
 
   const handleDelete = async (quizId) => {
-    if (confirm('Are you sure you want to delete this quiz?')) {
+    if (window.confirm('Are you sure you want to delete this quiz?')) {
       const { error } = await supabase
         .from('quizzes')
         .delete()
         .eq('id', quizId)
         
-      if (!error) {
+      if (error) {
+        alert('Error deleting quiz: ' + error.message)
+      } else {
         alert('Quiz deleted successfully!')
         fetchQuizzes()
       }
@@ -140,7 +167,7 @@ const QuizManager = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter quiz title"
                 required
               />
@@ -151,7 +178,7 @@ const QuizManager = () => {
               <select
                 value={formData.category_id}
                 onChange={(e) => setFormData({...formData, category_id: e.target.value})}
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 required
               >
                 <option value="">Select Category</option>
@@ -166,7 +193,7 @@ const QuizManager = () => {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 rows="3"
                 placeholder="Enter quiz description"
               />
@@ -179,7 +206,7 @@ const QuizManager = () => {
                   type="number"
                   value={formData.time_limit}
                   onChange={(e) => setFormData({...formData, time_limit: parseInt(e.target.value)})}
-                  className="w-full p-3 border rounded-lg"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   min="5"
                   max="180"
                 />
@@ -190,7 +217,7 @@ const QuizManager = () => {
                 <select
                   value={formData.difficulty}
                   onChange={(e) => setFormData({...formData, difficulty: e.target.value})}
-                  className="w-full p-3 border rounded-lg"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Easy">Easy</option>
                   <option value="Medium">Medium</option>

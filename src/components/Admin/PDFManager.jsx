@@ -21,67 +21,90 @@ const PDFManager = () => {
   }, [])
 
   const fetchPDFs = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('pdfs')
       .select('*')
       .order('created_at', { ascending: false })
-    setPdfs(data || [])
+    
+    if (error) {
+      console.error('Error fetching PDFs:', error)
+    } else {
+      setPdfs(data || [])
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Convert Google Drive share URL to direct download URL
-    const directUrl = formData.google_drive_url.includes('/file/d/') 
-      ? formData.google_drive_url.replace('/view?usp=sharing', '').replace('https://drive.google.com/file/d/', 'https://drive.google.com/uc?id=') + '&export=download'
-      : formData.direct_download_url
+    try {
+      // Convert Google Drive share URL to direct download URL
+      const directUrl = formData.google_drive_url.includes('/file/d/') 
+        ? formData.google_drive_url.replace('/view?usp=sharing', '').replace('https://drive.google.com/file/d/', 'https://drive.google.com/uc?id=') + '&export=download'
+        : formData.direct_download_url
 
-    const pdfData = {
-      ...formData,
-      direct_download_url: directUrl
-    }
-    
-    if (editingPdf) {
-      const { error } = await supabase
-        .from('pdfs')
-        .update(pdfData)
-        .eq('id', editingPdf.id)
-        
-      if (!error) {
-        alert('PDF updated successfully!')
-        setEditingPdf(null)
+      const pdfData = {
+        ...formData,
+        direct_download_url: directUrl
       }
-    } else {
-      const { error } = await supabase
-        .from('pdfs')
-        .insert([pdfData])
-        
-      if (!error) {
-        alert('PDF added successfully!')
-        setShowAddForm(false)
+      
+      if (editingPdf) {
+        const { data, error } = await supabase
+          .from('pdfs')
+          .update(pdfData)
+          .eq('id', editingPdf.id)
+          .select()
+          
+        if (error) {
+          console.error('Update error:', error)
+          alert('Error updating PDF: ' + error.message)
+        } else {
+          alert('✅ PDF updated successfully!')
+          setEditingPdf(null)
+          console.log('Updated data:', data)
+        }
+      } else {
+        const { data, error } = await supabase
+          .from('pdfs')
+          .insert([pdfData])
+          .select()
+          
+        if (error) {
+          console.error('Insert error:', error)
+          alert('Error adding PDF: ' + error.message)
+        } else {
+          alert('✅ PDF added successfully!')
+          setShowAddForm(false)
+          console.log('Inserted data:', data)
+        }
       }
+      
+      // Reset form
+      setFormData({
+        title: '',
+        description: '',
+        google_drive_url: '',
+        direct_download_url: '',
+        category: '',
+        exam_type: '',
+        file_size: ''
+      })
+      fetchPDFs()
+    } catch (err) {
+      console.error('Unexpected error:', err)
+      alert('Unexpected error occurred')
     }
-    
-    setFormData({
-      title: '',
-      description: '',
-      google_drive_url: '',
-      direct_download_url: '',
-      category: '',
-      exam_type: '',
-      file_size: ''
-    })
-    fetchPDFs()
   }
 
   const handleDelete = async (pdfId) => {
-    if (confirm('Are you sure you want to delete this PDF?')) {
+    if (window.confirm('Are you sure you want to delete this PDF?')) {
       const { error } = await supabase
         .from('pdfs')
         .delete()
         .eq('id', pdfId)
         
-      if (!error) {
+      if (error) {
+        alert('Error deleting PDF: ' + error.message)
+      } else {
         alert('PDF deleted successfully!')
         fetchPDFs()
       }
@@ -125,7 +148,7 @@ const PDFManager = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
                 placeholder="Enter PDF title"
                 required
               />
@@ -136,7 +159,7 @@ const PDFManager = () => {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
                 rows="3"
                 placeholder="Enter PDF description"
               />
@@ -148,7 +171,7 @@ const PDFManager = () => {
                 type="url"
                 value={formData.google_drive_url}
                 onChange={(e) => setFormData({...formData, google_drive_url: e.target.value})}
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
                 placeholder="https://drive.google.com/file/d/FILE_ID/view?usp=sharing"
                 required
               />
@@ -163,7 +186,7 @@ const PDFManager = () => {
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full p-3 border rounded-lg"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
                   required
                 >
                   <option value="">Select Category</option>
@@ -180,7 +203,7 @@ const PDFManager = () => {
                 <select
                   value={formData.exam_type}
                   onChange={(e) => setFormData({...formData, exam_type: e.target.value})}
-                  className="w-full p-3 border rounded-lg"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Select Exam Type</option>
                   <option value="SBI PO">SBI PO</option>
@@ -199,7 +222,7 @@ const PDFManager = () => {
                 type="text"
                 value={formData.file_size}
                 onChange={(e) => setFormData({...formData, file_size: e.target.value})}
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500"
                 placeholder="e.g., 2.5 MB"
               />
             </div>
@@ -217,6 +240,15 @@ const PDFManager = () => {
                 onClick={() => {
                   setShowAddForm(false)
                   setEditingPdf(null)
+                  setFormData({
+                    title: '',
+                    description: '',
+                    google_drive_url: '',
+                    direct_download_url: '',
+                    category: '',
+                    exam_type: '',
+                    file_size: ''
+                  })
                 }}
                 className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600"
               >
