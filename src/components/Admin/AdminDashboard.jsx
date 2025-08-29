@@ -3,6 +3,7 @@ import { supabase } from '../../utils/supabase'
 import QuizManager from './QuizManager'
 import PDFManager from './PDFManager'
 import UserManager from './UserManager'
+import ExamCalendarManager from './ExamCalendarManager'
 
 const AdminDashboard = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview')
@@ -10,6 +11,7 @@ const AdminDashboard = ({ onLogout }) => {
     totalUsers: 0,
     totalQuizzes: 0,
     totalPDFs: 0,
+    totalExams: 0, // New stat for exams
     pendingRequests: 0
   })
 
@@ -18,15 +20,15 @@ const AdminDashboard = ({ onLogout }) => {
   }, [])
 
   const fetchStats = async () => {
-    // Fetch basic stats from Supabase
     try {
-      // Get user count from auth.users (built-in Supabase table)
+      // Get user count from users table (synced with auth.users)
       const { count: userCount } = await supabase
-        .from('auth.users')
+        .from('users')
         .select('id', { count: 'exact', head: true })
       
       const { data: quizzes } = await supabase.from('quizzes').select('id')
       const { data: pdfs } = await supabase.from('pdfs').select('id')
+      const { data: exams } = await supabase.from('exam_calendar').select('id') // New exam count
       const { data: requests } = await supabase
         .from('user_requests')
         .select('id')
@@ -36,15 +38,16 @@ const AdminDashboard = ({ onLogout }) => {
         totalUsers: userCount || 0,
         totalQuizzes: quizzes?.length || 0,
         totalPDFs: pdfs?.length || 0,
+        totalExams: exams?.length || 0, // New exam stat
         pendingRequests: requests?.length || 0
       })
     } catch (error) {
       console.log('Error fetching stats:', error)
-      // Fallback stats if database queries fail
       setStats({
         totalUsers: 0,
-        totalQuizzes: 1,
-        totalPDFs: 2,
+        totalQuizzes: 0,
+        totalPDFs: 0,
+        totalExams: 0,
         pendingRequests: 0
       })
     }
@@ -115,6 +118,16 @@ const AdminDashboard = ({ onLogout }) => {
               </li>
               <li>
                 <button
+                  onClick={() => setActiveTab('exam-calendar')}
+                  className={`w-full text-left p-3 rounded-lg ${
+                    activeTab === 'exam-calendar' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
+                  }`}
+                >
+                  📅 Exam Calendar
+                </button>
+              </li>
+              <li>
+                <button
                   onClick={() => setActiveTab('requests')}
                   className={`w-full text-left p-3 rounded-lg ${
                     activeTab === 'requests' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
@@ -133,7 +146,7 @@ const AdminDashboard = ({ onLogout }) => {
             <div>
               <h2 className="text-3xl font-bold mb-6">Dashboard Overview</h2>
               
-              {/* Stats Cards */}
+              {/* Stats Cards - Updated to include Exams */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-lg font-semibold text-gray-600">Total Users</h3>
@@ -148,12 +161,12 @@ const AdminDashboard = ({ onLogout }) => {
                   <p className="text-3xl font-bold text-purple-600">{stats.totalPDFs}</p>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-semibold text-gray-600">Pending Requests</h3>
-                  <p className="text-3xl font-bold text-orange-600">{stats.pendingRequests}</p>
+                  <h3 className="text-lg font-semibold text-gray-600">Exam Events</h3>
+                  <p className="text-3xl font-bold text-indigo-600">{stats.totalExams}</p>
                 </div>
               </div>
 
-              {/* Quick Actions */}
+              {/* Quick Actions - Updated to include Exam Calendar */}
               <div className="bg-white p-6 rounded-lg shadow">
                 <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -170,16 +183,16 @@ const AdminDashboard = ({ onLogout }) => {
                     📄 Add New PDF
                   </button>
                   <button
+                    onClick={() => setActiveTab('exam-calendar')}
+                    className="bg-indigo-600 text-white p-4 rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    📅 Add Exam Event
+                  </button>
+                  <button
                     onClick={() => setActiveTab('user-management')}
                     className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors"
                   >
                     👥 Manage Users
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('requests')}
-                    className="bg-orange-600 text-white p-4 rounded-lg hover:bg-orange-700 transition-colors"
-                  >
-                    📝 Review Requests
                   </button>
                 </div>
               </div>
@@ -192,6 +205,7 @@ const AdminDashboard = ({ onLogout }) => {
                   <p>• {stats.totalQuizzes} quiz(es) available for users</p>
                   <p>• {stats.totalPDFs} PDF(s) ready for download</p>
                   <p>• {stats.totalUsers} user(s) registered on platform</p>
+                  <p>• {stats.totalExams} exam event(s) scheduled</p>
                   <p>• Admin panel fully operational</p>
                 </div>
               </div>
@@ -204,8 +218,11 @@ const AdminDashboard = ({ onLogout }) => {
           {/* PDF Management Tab */}
           {activeTab === 'pdf-management' && <PDFManager />}
 
-          {/* User Management Tab - Now with UserManager component */}
+          {/* User Management Tab */}
           {activeTab === 'user-management' && <UserManager />}
+
+          {/* Exam Calendar Tab - NEW ADDITION */}
+          {activeTab === 'exam-calendar' && <ExamCalendarManager />}
 
           {/* User Requests Tab */}
           {activeTab === 'requests' && (
