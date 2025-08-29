@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from './utils/supabase'
 import LoginModal from './components/Auth/LoginModal'
+import SignupModal from './components/Auth/SignupModal'
 import './App.css'
 
 function App() {
   const [darkMode, setDarkMode] = useState(false)
   const [user, setUser] = useState(null)
   const [showLogin, setShowLogin] = useState(false)
+  const [showSignup, setShowSignup] = useState(false)
 
   useEffect(() => {
     // Check if user is logged in
@@ -150,8 +152,18 @@ function App() {
           onClose={() => setShowLogin(false)}
           onSwitchToSignup={() => {
             setShowLogin(false)
-            // Signup modal बाद में add करेंगे
-            alert('Signup coming soon!')
+            setShowSignup(true)
+          }}
+        />
+      )}
+
+      {/* Signup Modal */}
+      {showSignup && (
+        <SignupModal
+          onClose={() => setShowSignup(false)}
+          onSwitchToLogin={() => {
+            setShowSignup(false)
+            setShowLogin(true)
           }}
         />
       )}
