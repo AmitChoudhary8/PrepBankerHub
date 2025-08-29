@@ -63,7 +63,7 @@ const UserRequestForm = ({ user }) => {
         title: formData.name.trim(),
         description: formData.message.trim(),
         email: formData.email.trim(),
-        attachment_url: formData.pdfLink.trim() || null,
+        pdf_link: formData.pdfLink.trim() || null,
         request_type: formData.requestType,
         status: 'pending',
         created_at: new Date()
