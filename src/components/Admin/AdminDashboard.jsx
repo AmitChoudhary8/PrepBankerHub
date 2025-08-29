@@ -1,20 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../utils/supabase'
-import QuizManager from './QuizManager'
-import PDFManager from './PDFManager'
-import UserManager from './UserManager'
-import ExamCalendarManager from './ExamCalendarManager'
-import UserRequestManager from './UserRequestManager'
 
 const AdminDashboard = ({ onLogout }) => {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalQuizzes: 0,
-    totalPDFs: 0,
-    totalExams: 0,
-    pendingRequests: 0
+    users: 0,
+    quizzes: 0,
+    pdfs: 0,
+    requests: 0
   })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchStats()
@@ -22,237 +17,175 @@ const AdminDashboard = ({ onLogout }) => {
 
   const fetchStats = async () => {
     try {
-      // Get user count from users table (synced with auth.users)
-      const { count: userCount } = await supabase
-        .from('users')
-        .select('id', { count: 'exact', head: true })
-      
-      const { data: quizzes } = await supabase.from('quizzes').select('id')
-      const { data: pdfs } = await supabase.from('pdfs').select('id')
-      const { data: exams } = await supabase.from('exam_calendar').select('id')
-      const { data: requests } = await supabase
-        .from('user_requests')
-        .select('id')
-        .eq('status', 'pending')
-      
+      const [users, quizzes, pdfs, requests] = await Promise.all([
+        supabase.from('auth.users').select('id', { count: 'exact', head: true }),
+        supabase.from('quizzes').select('id', { count: 'exact', head: true }),
+        supabase.from('pdfs').select('id', { count: 'exact', head: true }),
+        supabase.from('user_requests').select('id', { count: 'exact', head: true })
+      ])
+
       setStats({
-        totalUsers: userCount || 0,
-        totalQuizzes: quizzes?.length || 0,
-        totalPDFs: pdfs?.length || 0,
-        totalExams: exams?.length || 0,
-        pendingRequests: requests?.length || 0
+        users: users.count || 0,
+        quizzes: quizzes.count || 0,
+        pdfs: pdfs.count || 0,
+        requests: requests.count || 0
       })
     } catch (error) {
-      console.log('Error fetching stats:', error)
-      setStats({
-        totalUsers: 0,
-        totalQuizzes: 0,
-        totalPDFs: 0,
-        totalExams: 0,
-        pendingRequests: 0
-      })
+      console.error('Error fetching stats:', error)
     }
+    setLoading(false)
   }
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Admin Header */}
-      <header className="bg-red-600 text-white p-4 shadow-lg">
-        <div className="flex justify-between items-center max-w-7xl mx-auto">
-          <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold">PrepBankerHub Admin Panel</h1>
-            <span className="text-red-200">👨‍💼</span>
-          </div>
-          <button
-            onClick={onLogout}
-            className="bg-red-700 hover:bg-red-800 px-4 py-2 rounded-lg transition-colors"
-          >
-            Logout
-          </button>
+  const StatCard = ({ title, count, icon, color }) => (
+    <div className={`bg-white rounded-lg shadow-lg p-4 md:p-6 border-l-4 ${color}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm md:text-base text-gray-600 font-medium">{title}</p>
+          <p className="text-2xl md:text-3xl font-bold text-gray-800">
+            {loading ? '...' : count.toLocaleString()}
+          </p>
         </div>
-      </header>
+        <div className="text-3xl md:text-4xl">{icon}</div>
+      </div>
+    </div>
+  )
 
-      <div className="flex max-w-7xl mx-auto">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white shadow-lg min-h-screen">
-          <nav className="p-4">
-            <ul className="space-y-2">
-              <li>
-                <button
-                  onClick={() => setActiveTab('overview')}
-                  className={`w-full text-left p-3 rounded-lg ${
-                    activeTab === 'overview' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  📊 Dashboard Overview
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setActiveTab('quiz-management')}
-                  className={`w-full text-left p-3 rounded-lg ${
-                    activeTab === 'quiz-management' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  📚 Quiz Management
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setActiveTab('pdf-management')}
-                  className={`w-full text-left p-3 rounded-lg ${
-                    activeTab === 'pdf-management' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  📄 PDF Management
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setActiveTab('user-management')}
-                  className={`w-full text-left p-3 rounded-lg ${
-                    activeTab === 'user-management' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  👥 User Management
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setActiveTab('exam-calendar')}
-                  className={`w-full text-left p-3 rounded-lg ${
-                    activeTab === 'exam-calendar' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  📅 Exam Calendar
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => setActiveTab('requests')}
-                  className={`w-full text-left p-3 rounded-lg ${
-                    activeTab === 'requests' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  📝 User Requests {stats.pendingRequests > 0 && (
-                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full ml-2">
-                      {stats.pendingRequests}
-                    </span>
-                  )}
-                </button>
-              </li>
-            </ul>
-          </nav>
-        </aside>
+  return (
+    <div className="min-h-screen bg-gray-50 p-3 md:p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Mobile-Optimized Header */}
+        <header className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+            <div className="mb-4 sm:mb-0">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">🔐 Admin Dashboard</h1>
+              <p className="text-sm md:text-base text-gray-600 mt-1">
+                Manage your PrepBankerHub platform
+              </p>
+            </div>
+            
+            <div className="flex space-x-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{ minHeight: '40px' }}
+              >
+                🔄 Refresh
+              </button>
+              <button
+                onClick={onLogout}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{ minHeight: '40px' }}
+              >
+                🚪 Logout
+              </button>
+            </div>
+          </div>
+        </header>
 
-        {/* Main Content */}
-        <main className="flex-1 p-6">
-          {activeTab === 'overview' && (
-            <div>
-              <h2 className="text-3xl font-bold mb-6">Dashboard Overview</h2>
+        {/* Stats Cards Grid - Mobile Responsive */}
+        <section className="mb-8">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">📊 Platform Statistics</h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            <StatCard
+              title="Total Users"
+              count={stats.users}
+              icon="👥"
+              color="border-blue-500"
+            />
+            <StatCard
+              title="Active Quizzes"
+              count={stats.quizzes}
+              icon="📚"
+              color="border-green-500"
+            />
+            <StatCard
+              title="PDF Resources"
+              count={stats.pdfs}
+              icon="📄"
+              color="border-purple-500"
+            />
+            <StatCard
+              title="User Requests"
+              count={stats.requests}
+              icon="📝"
+              color="border-orange-500"
+            />
+          </div>
+        </section>
+
+        {/* Quick Actions - Mobile Optimized */}
+        <section className="mb-8">
+          <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">⚡ Quick Actions</h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <button className="bg-white p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow text-left">
+              <div className="text-3xl mb-3">➕</div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Add New Quiz</h3>
+              <p className="text-sm text-gray-600">Create a new quiz for students</p>
+            </button>
+            
+            <button className="bg-white p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow text-left">
+              <div className="text-3xl mb-3">📤</div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Upload PDF</h3>
+              <p className="text-sm text-gray-600">Add study materials</p>
+            </button>
+            
+            <button className="bg-white p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow text-left">
+              <div className="text-3xl mb-3">📧</div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Send Notifications</h3>
+              <p className="text-sm text-gray-600">Email all users</p>
+            </button>
+          </div>
+        </section>
+
+        {/* Recent Activity - Mobile Optimized */}
+        <section>
+          <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-4">📈 Recent Activity</h2>
+          
+          <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">👤</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">New user registered</p>
+                    <p className="text-xs text-gray-500">2 minutes ago</p>
+                  </div>
+                </div>
+              </div>
               
-              {/* Stats Cards - Updated to include all stats */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-semibold text-gray-600">Total Users</h3>
-                  <p className="text-3xl font-bold text-blue-600">{stats.totalUsers}</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-semibold text-gray-600">Total Quizzes</h3>
-                  <p className="text-3xl font-bold text-green-600">{stats.totalQuizzes}</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-semibold text-gray-600">Total PDFs</h3>
-                  <p className="text-3xl font-bold text-purple-600">{stats.totalPDFs}</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-semibold text-gray-600">Exam Events</h3>
-                  <p className="text-3xl font-bold text-indigo-600">{stats.totalExams}</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-semibold text-gray-600">Pending Requests</h3>
-                  <p className="text-3xl font-bold text-orange-600">{stats.pendingRequests}</p>
+              <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <span className="text-green-600 text-sm">📚</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Quiz completed</p>
+                    <p className="text-xs text-gray-500">5 minutes ago</p>
+                  </div>
                 </div>
               </div>
-
-              {/* Quick Actions - Updated to include Request Management */}
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <button
-                    onClick={() => setActiveTab('quiz-management')}
-                    className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    ➕ Add New Quiz
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('pdf-management')}
-                    className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    📄 Add New PDF
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('exam-calendar')}
-                    className="bg-indigo-600 text-white p-4 rounded-lg hover:bg-indigo-700 transition-colors"
-                  >
-                    📅 Add Exam Event
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('user-management')}
-                    className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    👥 Manage Users
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('requests')}
-                    className="bg-orange-600 text-white p-4 rounded-lg hover:bg-orange-700 transition-colors relative"
-                  >
-                    📝 Review Requests
-                    {stats.pendingRequests > 0 && (
-                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                        {stats.pendingRequests}
-                      </span>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Recent Activity */}
-              <div className="mt-6 bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-bold mb-4">Recent Activity</h3>
-                <div className="space-y-3 text-sm text-gray-600">
-                  <p>• Database successfully initialized with sample data</p>
-                  <p>• {stats.totalQuizzes} quiz(es) available for users</p>
-                  <p>• {stats.totalPDFs} PDF(s) ready for download</p>
-                  <p>• {stats.totalUsers} user(s) registered on platform</p>
-                  <p>• {stats.totalExams} exam event(s) scheduled</p>
-                  <p>• {stats.pendingRequests} pending user request(s)</p>
-                  <p>• Admin panel fully operational</p>
+              
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                    <span className="text-purple-600 text-sm">📄</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">PDF downloaded</p>
+                    <p className="text-xs text-gray-500">10 minutes ago</p>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        </section>
 
-          {/* Quiz Management Tab */}
-          {activeTab === 'quiz-management' && <QuizManager />}
-
-          {/* PDF Management Tab */}
-          {activeTab === 'pdf-management' && <PDFManager />}
-
-          {/* User Management Tab */}
-          {activeTab === 'user-management' && <UserManager />}
-
-          {/* Exam Calendar Tab */}
-          {activeTab === 'exam-calendar' && <ExamCalendarManager />}
-
-          {/* User Requests Tab - UPDATED WITH ACTUAL COMPONENT */}
-          {activeTab === 'requests' && (
-            <div>
-              <h2 className="text-3xl font-bold mb-6">User Requests Management</h2>
-              <UserRequestManager />
-            </div>
-          )}
-        </main>
+        {/* Mobile Bottom Padding */}
+        <div className="h-20 md:h-0"></div>
       </div>
     </div>
   )
