@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from './utils/supabase'
+import LoginModal from './components/Auth/LoginModal'
 import './App.css'
 
 function App() {
@@ -134,27 +135,6 @@ function App() {
             )}
           </div>
         </div>
-
-        {/* Temporary Login Alert */}
-        {showLogin && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md mx-4">
-              <div className="text-center">
-                <h3 className="text-xl font-bold mb-4">Login Coming Soon!</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Authentication system is being developed. 
-                  Login functionality will be available soon!
-                </p>
-                <button
-                  onClick={() => setShowLogin(false)}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
 
       {/* Footer */}
@@ -163,6 +143,18 @@ function App() {
           <p>&copy; 2025 PrepBankerHub. All resources are completely free!</p>
         </div>
       </footer>
+
+      {/* Login Modal */}
+      {showLogin && (
+        <LoginModal
+          onClose={() => setShowLogin(false)}
+          onSwitchToSignup={() => {
+            setShowLogin(false)
+            // Signup modal बाद में add करेंगे
+            alert('Signup coming soon!')
+          }}
+        />
+      )}
     </div>
   )
 }
