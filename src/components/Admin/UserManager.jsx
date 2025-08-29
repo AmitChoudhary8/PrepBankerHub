@@ -20,31 +20,17 @@ const UserManager = () => {
 
   const fetchUsers = async () => {
     try {
-      // Get users from auth.users table (Supabase built-in)
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
+      // Fetch from public.users table (synced with auth.users)
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
       
-      if (authError) {
-        console.error('Error fetching auth users:', authError)
-        // Fallback: try to get from a custom users table if it exists
-        const { data: customUsers, error: customError } = await supabase
-          .from('users')
-          .select('*')
-          .order('created_at', { ascending: false })
-          
-        if (!customError && customUsers) {
-          setUsers(customUsers)
-        }
+      if (error) {
+        console.error('Error fetching users:', error)
       } else {
-        // Map auth users to our format
-        const mappedUsers = authUsers.users.map(user => ({
-          id: user.id,
-          email: user.email,
-          name: user.user_metadata?.name || user.user_metadata?.full_name || 'Unknown',
-          created_at: user.created_at,
-          last_sign_in_at: user.last_sign_in_at,
-          email_confirmed_at: user.email_confirmed_at
-        }))
-        setUsers(mappedUsers)
+        console.log('Fetched users:', users)
+        setUsers(users || [])
       }
       setLoading(false)
     } catch (error) {
@@ -55,9 +41,9 @@ const UserManager = () => {
 
   const fetchUserStats = async () => {
     try {
-      // Get total users count
+      // Get stats from public.users table
       const { count: totalCount } = await supabase
-        .from('auth.users')
+        .from('users')
         .select('*', { count: 'exact', head: true })
 
       // Get recent signups (last 7 days)
@@ -65,22 +51,17 @@ const UserManager = () => {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
       
       const { count: recentCount } = await supabase
-        .from('auth.users')
+        .from('users')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', sevenDaysAgo.toISOString())
 
       setUserStats({
-        totalUsers: totalCount || users.length,
+        totalUsers: totalCount || 0,
         recentSignups: recentCount || 0,
-        activeUsers: users.filter(user => user.email_confirmed_at).length
+        activeUsers: totalCount || 0
       })
     } catch (error) {
       console.error('Error fetching user stats:', error)
-      setUserStats({
-        totalUsers: users.length,
-        recentSignups: 0,
-        activeUsers: 0
-      })
     }
   }
 
@@ -107,29 +88,6 @@ const UserManager = () => {
     fetchUserAttempts(user.id)
   }
 
-  const exportUsersToCSV = () => {
-    const csvContent = [
-      ['Name', 'Email', 'Join Date', 'Email Confirmed', 'Last Sign In'],
-      ...users.map(user => [
-        user.name || 'N/A',
-        user.email,
-        new Date(user.created_at).toLocaleDateString(),
-        user.email_confirmed_at ? 'Yes' : 'No',
-        user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Never'
-      ])
-    ].map(row => row.join(',')).join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `users_export_${new Date().toISOString().split('T')[0]}.csv`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-  }
-
   const formatDate = (dateString) => {
     if (!dateString) return 'Never'
     return new Date(dateString).toLocaleString()
@@ -139,6 +97,34 @@ const UserManager = () => {
     if (!attempts.length) return 0
     const totalScore = attempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0)
     return Math.round(totalScore / attempts.length)
+  }
+
+  const exportUsersToCSV = () => {
+    const csvContent = [
+      ['Name', 'Email', 'Join Date', 'Last Sign In'],
+      ...users.map(user => [
+        user.name || 'N/A',
+        user.email,
+        new Date(user.created_at).toLocaleDateString(),
+        user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Never'
+      ])
+    ].map(row => row.join(',')).join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `users_export_${new Date().toISOString().split('T')}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const refreshUsers = async () => {
+    setLoading(true)
+    await fetchUsers()
+    await fetchUserStats()
   }
 
   // User Details Modal
@@ -168,7 +154,6 @@ const UserManager = () => {
                 <p><strong>Name:</strong> {selectedUser.name}</p>
                 <p><strong>Email:</strong> {selectedUser.email}</p>
                 <p><strong>Join Date:</strong> {formatDate(selectedUser.created_at)}</p>
-                <p><strong>Email Verified:</strong> {selectedUser.email_confirmed_at ? '✅ Yes' : '❌ No'}</p>
                 <p><strong>Last Login:</strong> {formatDate(selectedUser.last_sign_in_at)}</p>
               </div>
             </div>
@@ -236,12 +221,20 @@ const UserManager = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold">User Management</h2>
-        <button
-          onClick={exportUsersToCSV}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-        >
-          📊 Export Users CSV
-        </button>
+        <div className="space-x-2">
+          <button
+            onClick={refreshUsers}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            🔄 Refresh
+          </button>
+          <button
+            onClick={exportUsersToCSV}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+          >
+            📊 Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -271,7 +264,6 @@ const UserManager = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Join Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Login</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -283,15 +275,6 @@ const UserManager = () => {
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900">{user.name || 'Unknown'}</div>
                     <div className="text-sm text-gray-500">{user.email}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      user.email_confirmed_at 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {user.email_confirmed_at ? '✅ Verified' : '⏳ Pending'}
-                    </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">
                     {formatDate(user.created_at)}
