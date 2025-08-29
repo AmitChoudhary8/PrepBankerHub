@@ -10,118 +10,154 @@ const UserRequestForm = ({ user }) => {
     requestType: 'general'
   })
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
     setError('')
+    setSuccess('')
   }
 
   const validateForm = () => {
     if (!formData.name.trim()) {
-      setError('Name is required')
+      setError('❌ Name is required')
       return false
     }
     if (!formData.email.trim()) {
-      setError('Email is required')
+      setError('❌ Email is required')
       return false
     }
     if (!formData.message.trim()) {
-      setError('Message is required')
+      setError('❌ Message is required')
       return false
     }
-    if (formData.pdfLink && !isValidURL(formData.pdfLink)) {
-      setError('Please enter a valid PDF link')
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      setError('❌ Please enter a valid email address')
       return false
     }
     return true
   }
 
-  const isValidURL = (string) => {
-    try {
-      new URL(string)
-      return true
-    } catch (_) {
-      return false
-    }
-  }
-
   const handleSubmit = async (e) => {
-  e.preventDefault()
-  
-  if (!validateForm()) return
+    e.preventDefault()
 
-  setLoading(true)
-  setError('')
+    if (!validateForm()) return
 
-  try {
-    // Get current user session
-    const { data: { session } } = await supabase.auth.getSession()
-    
-    if (!session?.user) {
-      setError('You must be logged in to submit a request')
-      setLoading(false)
-      return
-    }
+    setLoading(true)
+    setError('')
+    setSuccess('')
 
-    const { error: submitError } = await supabase
-      .from('user_requests')
-      .insert([{
-        user_id: session.user.id, // Add this line
+    try {
+      // Get current user session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError)
+        setError('🚨 Authentication error: ' + sessionError.message)
+        setLoading(false)
+        return
+      }
+
+      // Prepare insert data
+      const insertData = {
         name: formData.name.trim(),
         email: formData.email.trim(),
         message: formData.message.trim(),
         pdf_link: formData.pdfLink.trim() || null,
         request_type: formData.requestType,
-        status: 'pending'
-      }])
+        status: 'pending',
+        created_at: new Date()
+      }
 
-    if (submitError) {
-      console.error('Supabase error:', submitError) // Debug log
-      setError('Failed to submit request. Please try again.')
-    } else {
-      setSuccess('✅ Your request has been submitted successfully!')
-      // Reset form
-      setFormData({
-        name: user?.user_metadata?.name || '',
-        email: user?.email || '',
-        message: '',
-        pdfLink: '',
-        requestType: 'general'
-      })
+      // Add user_id if user is logged in
+      if (session?.user?.id) {
+        insertData.user_id = session.user.id
+      }
+
+      console.log('Inserting data:', insertData) // Debug log
+
+      // Insert into Supabase
+      const { data, error: insertError } = await supabase
+        .from('user_requests')
+        .insert([insertData])
+        .select()
+
+      console.log('Supabase response:', { data, error: insertError }) // Debug log
+
+      if (insertError) {
+        console.error('Insert error:', insertError)
+        
+        // Show specific error messages
+        if (insertError.code === '42501') {
+          setError('🔒 Permission denied. Please make sure you are logged in.')
+        } else if (insertError.code === '23502') {
+          setError('📝 Missing required fields. Please fill all mandatory fields.')
+        } else if (insertError.code === '23505') {
+          setError('⚠️ Duplicate request. You have already submitted a similar request.')
+        } else {
+          setError('❌ Database Error: ' + insertError.message)
+        }
+        
+        // Also show alert for mobile debugging
+        alert('Error Details: ' + JSON.stringify(insertError))
+        
+      } else {
+        console.log('Success:', data)
+        setSuccess('✅ Your request has been submitted successfully! We will review it and get back to you soon.')
+        
+        // Reset form
+        setFormData({
+          name: user?.user_metadata?.name || '',
+          email: user?.email || '',
+          message: '',
+          pdfLink: '',
+          requestType: 'general'
+        })
+        
+        // Show success alert for mobile
+        alert('✅ Request submitted successfully!')
+      }
+
+    } catch (err) {
+      console.error('Catch error:', err)
+      setError('🌐 Network Error: ' + err.message + '. Please check your internet connection and try again.')
+      
+      // Show alert for mobile debugging
+      alert('Network Error: ' + err.message)
     }
-  } catch (err) {
-    console.error('Catch error:', err) // Debug log
-    setError('An unexpected error occurred. Please try again.')
-  }
-  
-  setLoading(false)
-}
 
+    setLoading(false)
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-8">
         <h2 className="text-3xl font-bold mb-6 text-center">📝 Submit Your Request</h2>
+        
         <p className="text-gray-600 text-center mb-8">
           Have a suggestion, feedback, or want to request a PDF? Let us know!
         </p>
 
-        {success && (
-          <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
-            {success}
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-r-lg">
+            <div className="font-semibold">Error:</div>
+            <div>{error}</div>
           </div>
         )}
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-            {error}
+        {/* Success Display */}
+        {success && (
+          <div className="mb-6 p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-r-lg">
+            <div className="font-semibold">Success!</div>
+            <div>{success}</div>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name Field */}
+          {/* Full Name */}
           <div>
             <label className="block text-sm font-medium mb-2">
               Full Name <span className="text-red-500">*</span>
@@ -131,14 +167,14 @@ const UserRequestForm = ({ user }) => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter your full name"
               required
               disabled={loading}
             />
           </div>
 
-          {/* Email Field */}
+          {/* Email */}
           <div>
             <label className="block text-sm font-medium mb-2">
               Email Address <span className="text-red-500">*</span>
@@ -148,7 +184,7 @@ const UserRequestForm = ({ user }) => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter your email address"
               required
               disabled={loading}
@@ -164,7 +200,7 @@ const UserRequestForm = ({ user }) => {
               name="requestType"
               value={formData.requestType}
               onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               disabled={loading}
             >
               <option value="general">General Inquiry</option>
@@ -176,7 +212,7 @@ const UserRequestForm = ({ user }) => {
             </select>
           </div>
 
-          {/* Message Field */}
+          {/* Message */}
           <div>
             <label className="block text-sm font-medium mb-2">
               Message <span className="text-red-500">*</span>
@@ -186,14 +222,14 @@ const UserRequestForm = ({ user }) => {
               value={formData.message}
               onChange={handleChange}
               rows="5"
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Please describe your request in detail..."
               required
               disabled={loading}
             />
           </div>
 
-          {/* PDF Link Field */}
+          {/* PDF Link */}
           <div>
             <label className="block text-sm font-medium mb-2">
               PDF Link <span className="text-gray-500">(Optional)</span>
@@ -203,7 +239,7 @@ const UserRequestForm = ({ user }) => {
               name="pdfLink"
               value={formData.pdfLink}
               onChange={handleChange}
-              className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="https://example.com/your-pdf-link"
               disabled={loading}
             />
@@ -216,9 +252,19 @@ const UserRequestForm = ({ user }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+            className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-lg"
           >
-            {loading ? 'Submitting...' : '📤 Submit Request'}
+            {loading ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Submitting...
+              </span>
+            ) : (
+              '📤 Submit Request'
+            )}
           </button>
         </form>
 
@@ -232,6 +278,18 @@ const UserRequestForm = ({ user }) => {
             <li>• All resources shared will be made free for everyone</li>
           </ul>
         </div>
+
+        {/* Debug Info (Only for testing - remove in production) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h4 className="font-semibold text-yellow-800">Debug Info:</h4>
+            <p className="text-sm text-yellow-700">
+              User: {user?.email || 'Not logged in'} | 
+              Form Valid: {validateForm() ? 'Yes' : 'No'} |
+              Loading: {loading ? 'Yes' : 'No'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
