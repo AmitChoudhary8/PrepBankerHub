@@ -1,8 +1,29 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { supabase } from './utils/supabase'
 import './App.css'
 
 function App() {
   const [darkMode, setDarkMode] = useState(false)
+  const [user, setUser] = useState(null)
+  const [showLogin, setShowLogin] = useState(false)
+
+  useEffect(() => {
+    // Check if user is logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+  }
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
@@ -14,12 +35,33 @@ function App() {
             <span className="text-blue-200">🏦</span>
           </div>
           
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded-lg transition-colors"
-          >
-            {darkMode ? '☀️ Light' : '🌙 Dark'}
-          </button>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded-lg transition-colors"
+            >
+              {darkMode ? '☀️ Light' : '🌙 Dark'}
+            </button>
+
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm">Hi, {user.user_metadata?.name || 'User'}!</span>
+                <button
+                  onClick={handleLogout}
+                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors text-sm"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowLogin(true)}
+                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors"
+              >
+                Login
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -42,23 +84,77 @@ function App() {
           </div>
         </div>
 
+        {/* User Status */}
+        {user && (
+          <div className="mb-6 p-4 bg-green-100 dark:bg-green-800 rounded-lg text-center">
+            <p className="text-green-800 dark:text-green-200">
+              ✅ Welcome back, {user.user_metadata?.name || 'User'}! You are logged in.
+            </p>
+          </div>
+        )}
+
+        {/* Login Prompt for Non-Logged Users */}
+        {!user && (
+          <div className="mb-6 p-4 bg-yellow-100 dark:bg-yellow-800 rounded-lg text-center">
+            <p className="text-yellow-800 dark:text-yellow-200">
+              📢 Please login to access quizzes, download PDFs, and track your progress!
+            </p>
+          </div>
+        )}
+
         {/* Quick Links */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
             <h3 className="text-xl font-bold mb-2">📚 Practice Quizzes</h3>
             <p className="text-gray-600 dark:text-gray-300">Test your knowledge with interactive quizzes</p>
+            {user && (
+              <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                Start Quiz
+              </button>
+            )}
           </div>
           
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
             <h3 className="text-xl font-bold mb-2">📄 PDF Downloads</h3>
             <p className="text-gray-600 dark:text-gray-300">Download study materials and notes</p>
+            {user && (
+              <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                View PDFs
+              </button>
+            )}
           </div>
           
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
             <h3 className="text-xl font-bold mb-2">📅 Exam Calendar</h3>
             <p className="text-gray-600 dark:text-gray-300">Track important exam dates</p>
+            {user && (
+              <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                View Calendar
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Temporary Login Alert */}
+        {showLogin && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md mx-4">
+              <div className="text-center">
+                <h3 className="text-xl font-bold mb-4">Login Coming Soon!</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  Authentication system is being developed. 
+                  Login functionality will be available soon!
+                </p>
+                <button
+                  onClick={() => setShowLogin(false)}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
