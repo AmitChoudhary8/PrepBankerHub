@@ -26,6 +26,7 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
       email: formData.email,
       password: formData.password,
       options: {
+        emailRedirectTo: 'https://prepbankerhub.netlify.app',
         data: {
           name: formData.name,
           mobile: formData.mobile,
@@ -37,7 +38,7 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
     if (error) {
       alert('Signup failed: ' + error.message)
     } else {
-      alert('Account created! Please check your email for verification link.')
+      alert('✅ Account created successfully!\n\n📧 Please check your email for verification link.\n\n⚠️ IMPORTANT: Check your SPAM/JUNK folder if email not found in inbox!')
       onClose()
     }
     setLoading(false)
@@ -150,6 +151,21 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
           </button>
         </form>
 
+        {/* Spam Warning Section */}
+        <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900 rounded-lg border border-yellow-200 dark:border-yellow-700">
+          <div className="flex items-start">
+            <span className="text-yellow-600 dark:text-yellow-400 text-lg mr-2">⚠️</span>
+            <div className="text-sm">
+              <p className="font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                Check Spam/Junk Folder!
+              </p>
+              <p className="text-yellow-700 dark:text-yellow-300">
+                Verification emails sometimes go to spam folder. Please check both inbox and spam after signup.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Already have an account?{' '}
@@ -159,12 +175,6 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
             >
               Login here
             </button>
-          </p>
-        </div>
-
-        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900 rounded-lg">
-          <p className="text-xs text-blue-800 dark:text-blue-200 text-center">
-            📧 You will receive a verification email after signup
           </p>
         </div>
       </div>
