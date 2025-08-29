@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from './utils/supabase'
 import LoginModal from './components/Auth/LoginModal'
 import SignupModal from './components/Auth/SignupModal'
+import AdminLogin from './components/Admin/AdminLogin'
 import './App.css'
 
 function App() {
@@ -9,6 +10,8 @@ function App() {
   const [user, setUser] = useState(null)
   const [showLogin, setShowLogin] = useState(false)
   const [showSignup, setShowSignup] = useState(false)
+  const [showAdminLogin, setShowAdminLogin] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     // Check if user is logged in
@@ -21,11 +24,33 @@ function App() {
       setUser(session?.user ?? null)
     })
 
+    // Check Admin Session
+    const adminSession = localStorage.getItem('adminSession')
+    if (adminSession) {
+      try {
+        const session = JSON.parse(adminSession)
+        const twoHours = 2 * 60 * 60 * 1000 // 2 hours timeout
+        if (Date.now() - session.loginTime < twoHours) {
+          setIsAdmin(true)
+        } else {
+          localStorage.removeItem('adminSession')
+        }
+      } catch (error) {
+        localStorage.removeItem('adminSession')
+      }
+    }
+
     return () => subscription.unsubscribe()
   }, [])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
+  }
+
+  const handleAdminLogout = () => {
+    localStorage.removeItem('adminSession')
+    setIsAdmin(false)
+    alert('Admin logged out successfully!')
   }
 
   return (
@@ -46,7 +71,8 @@ function App() {
               {darkMode ? '☀️ Light' : '🌙 Dark'}
             </button>
 
-            {user ? (
+            {/* Regular User Login/Logout */}
+            {user && !isAdmin ? (
               <div className="flex items-center space-x-2">
                 <span className="text-sm">Hi, {user.user_metadata?.name || 'User'}!</span>
                 <button
@@ -56,14 +82,40 @@ function App() {
                   Logout
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={() => setShowLogin(true)}
-                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors"
-              >
-                Login
-              </button>
-            )}
+            ) : null}
+
+            {/* Admin Mode Display */}
+            {isAdmin ? (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm bg-red-100 px-2 py-1 rounded text-red-800 font-medium">
+                  👨‍💼 Admin Mode
+                </span>
+                <button
+                  onClick={handleAdminLogout}
+                  className="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg transition-colors text-sm"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : null}
+
+            {/* Login and Admin Buttons (when not logged in) */}
+            {!user && !isAdmin ? (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowLogin(true)}
+                  className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors"
+                >
+                  Login
+                </button>
+                <button
+                  onClick={() => setShowAdminLogin(true)}
+                  className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg transition-colors text-sm"
+                >
+                  🔐 Admin
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
@@ -96,8 +148,17 @@ function App() {
           </div>
         )}
 
+        {/* Admin Status */}
+        {isAdmin && (
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-800 rounded-lg text-center">
+            <p className="text-red-800 dark:text-red-200">
+              🔥 Admin Panel Access Granted! You can manage quizzes, PDFs, and users.
+            </p>
+          </div>
+        )}
+
         {/* Login Prompt for Non-Logged Users */}
-        {!user && (
+        {!user && !isAdmin && (
           <div className="mb-6 p-4 bg-yellow-100 dark:bg-yellow-800 rounded-lg text-center">
             <p className="text-yellow-800 dark:text-yellow-200">
               📢 Please login to access quizzes, download PDFs, and track your progress!
@@ -110,7 +171,7 @@ function App() {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
             <h3 className="text-xl font-bold mb-2">📚 Practice Quizzes</h3>
             <p className="text-gray-600 dark:text-gray-300">Test your knowledge with interactive quizzes</p>
-            {user && (
+            {(user || isAdmin) && (
               <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                 Start Quiz
               </button>
@@ -120,7 +181,7 @@ function App() {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
             <h3 className="text-xl font-bold mb-2">📄 PDF Downloads</h3>
             <p className="text-gray-600 dark:text-gray-300">Download study materials and notes</p>
-            {user && (
+            {(user || isAdmin) && (
               <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                 View PDFs
               </button>
@@ -130,7 +191,7 @@ function App() {
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
             <h3 className="text-xl font-bold mb-2">📅 Exam Calendar</h3>
             <p className="text-gray-600 dark:text-gray-300">Track important exam dates</p>
-            {user && (
+            {(user || isAdmin) && (
               <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                 View Calendar
               </button>
@@ -165,6 +226,14 @@ function App() {
             setShowSignup(false)
             setShowLogin(true)
           }}
+        />
+      )}
+
+      {/* Admin Login Modal */}
+      {showAdminLogin && (
+        <AdminLogin
+          onClose={() => setShowAdminLogin(false)}
+          onAdminLogin={setIsAdmin}
         />
       )}
     </div>
