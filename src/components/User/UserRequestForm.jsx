@@ -48,44 +48,57 @@ const UserRequestForm = ({ user }) => {
   }
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+  e.preventDefault()
+  
+  if (!validateForm()) return
+
+  setLoading(true)
+  setError('')
+
+  try {
+    // Get current user session
+    const { data: { session } } = await supabase.auth.getSession()
     
-    if (!validateForm()) return
-
-    setLoading(true)
-    setError('')
-
-    try {
-      const { error: submitError } = await supabase
-        .from('user_requests')
-        .insert([{
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          message: formData.message.trim(),
-          pdf_link: formData.pdfLink.trim() || null,
-          request_type: formData.requestType,
-          status: 'pending'
-        }])
-
-      if (submitError) {
-        setError('Failed to submit request. Please try again.')
-      } else {
-        setSuccess('✅ Your request has been submitted successfully! We will review it and get back to you soon.')
-        // Reset form
-        setFormData({
-          name: user?.user_metadata?.name || '',
-          email: user?.email || '',
-          message: '',
-          pdfLink: '',
-          requestType: 'general'
-        })
-      }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.')
+    if (!session?.user) {
+      setError('You must be logged in to submit a request')
+      setLoading(false)
+      return
     }
-    
-    setLoading(false)
+
+    const { error: submitError } = await supabase
+      .from('user_requests')
+      .insert([{
+        user_id: session.user.id, // Add this line
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        message: formData.message.trim(),
+        pdf_link: formData.pdfLink.trim() || null,
+        request_type: formData.requestType,
+        status: 'pending'
+      }])
+
+    if (submitError) {
+      console.error('Supabase error:', submitError) // Debug log
+      setError('Failed to submit request. Please try again.')
+    } else {
+      setSuccess('✅ Your request has been submitted successfully!')
+      // Reset form
+      setFormData({
+        name: user?.user_metadata?.name || '',
+        email: user?.email || '',
+        message: '',
+        pdfLink: '',
+        requestType: 'general'
+      })
+    }
+  } catch (err) {
+    console.error('Catch error:', err) // Debug log
+    setError('An unexpected error occurred. Please try again.')
   }
+  
+  setLoading(false)
+}
+
 
   return (
     <div className="max-w-2xl mx-auto p-6">
