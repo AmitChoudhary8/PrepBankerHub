@@ -6,6 +6,7 @@ import AdminLogin from './components/Admin/AdminLogin'
 import AdminDashboard from './components/Admin/AdminDashboard'
 import QuizList from './components/User/QuizList'
 import QuizPlayer from './components/User/QuizPlayer'
+import PDFList from './components/User/PDFList'
 import './App.css'
 
 function App() {
@@ -16,9 +17,12 @@ function App() {
   const [showAdminLogin, setShowAdminLogin] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   
-  // New states for Quiz functionality
+  // States for Quiz functionality
   const [showQuizList, setShowQuizList] = useState(false)
   const [selectedQuiz, setSelectedQuiz] = useState(null)
+  
+  // New state for PDF functionality
+  const [showPDFList, setShowPDFList] = useState(false)
 
   useEffect(() => {
     // Check if user is logged in
@@ -52,9 +56,10 @@ function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    // Reset quiz states when user logs out
+    // Reset all states when user logs out
     setShowQuizList(false)
     setSelectedQuiz(null)
+    setShowPDFList(false)
   }
 
   const handleAdminLogout = () => {
@@ -66,6 +71,12 @@ function App() {
   const handleQuizComplete = () => {
     setSelectedQuiz(null)
     setShowQuizList(false)
+  }
+
+  const resetToHome = () => {
+    setShowQuizList(false)
+    setSelectedQuiz(null)
+    setShowPDFList(false)
   }
 
   // If admin is logged in, show admin dashboard instead of regular website
@@ -80,7 +91,12 @@ function App() {
       <header className="bg-blue-600 text-white p-4 shadow-lg">
         <div className="flex justify-between items-center max-w-6xl mx-auto">
           <div className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold">PrepBankerHub</h1>
+            <button 
+              onClick={resetToHome}
+              className="text-2xl font-bold hover:text-blue-200 transition-colors"
+            >
+              PrepBankerHub
+            </button>
             <span className="text-blue-200">🏦</span>
           </div>
           
@@ -129,8 +145,8 @@ function App() {
       {/* Main Content */}
       <main className="p-6 max-w-6xl mx-auto">
         
-        {/* Home Page - Show when user is logged in but no quiz selected */}
-        {user && !showQuizList && !selectedQuiz && (
+        {/* Home Page - Show when user is logged in but no section selected */}
+        {user && !showQuizList && !selectedQuiz && !showPDFList && (
           <>
             <div className="text-center mb-8">
               <h2 className="text-4xl font-bold mb-4">
@@ -172,7 +188,10 @@ function App() {
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
                 <h3 className="text-xl font-bold mb-2">📄 PDF Downloads</h3>
                 <p className="text-gray-600 dark:text-gray-300">Download study materials and notes</p>
-                <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                <button 
+                  onClick={() => setShowPDFList(true)}
+                  className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                >
                   View PDFs
                 </button>
               </div>
@@ -180,7 +199,7 @@ function App() {
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
                 <h3 className="text-xl font-bold mb-2">📅 Exam Calendar</h3>
                 <p className="text-gray-600 dark:text-gray-300">Track important exam dates</p>
-                <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                <button className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
                   View Calendar
                 </button>
               </div>
@@ -190,12 +209,20 @@ function App() {
 
         {/* Quiz List - Show when user wants to select a quiz */}
         {user && showQuizList && !selectedQuiz && (
-          <QuizList
-            onStartQuiz={(quiz) => {
-              setSelectedQuiz(quiz)
-              setShowQuizList(false)
-            }}
-          />
+          <div>
+            <button
+              onClick={() => setShowQuizList(false)}
+              className="mb-6 flex items-center text-blue-600 hover:text-blue-800 font-medium"
+            >
+              ← Back to Home
+            </button>
+            <QuizList
+              onStartQuiz={(quiz) => {
+                setSelectedQuiz(quiz)
+                setShowQuizList(false)
+              }}
+            />
+          </div>
         )}
 
         {/* Quiz Player - Show when user is taking a quiz */}
@@ -208,6 +235,19 @@ function App() {
               setShowQuizList(false)
             }}
           />
+        )}
+
+        {/* PDF List - Show when user wants to browse PDFs */}
+        {user && showPDFList && !showQuizList && !selectedQuiz && (
+          <div>
+            <button
+              onClick={() => setShowPDFList(false)}
+              className="mb-6 flex items-center text-green-600 hover:text-green-800 font-medium"
+            >
+              ← Back to Home
+            </button>
+            <PDFList />
+          </div>
         )}
 
         {/* Welcome Page for Non-Logged Users */}
@@ -244,7 +284,7 @@ function App() {
                 <p className="text-gray-600 dark:text-gray-300">Test your knowledge with interactive quizzes</p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="mt-4 bg-gray-400 text-white px-4 py-2 rounded-lg"
+                  className="mt-4 bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
                 >
                   Login to Access
                 </button>
@@ -255,7 +295,7 @@ function App() {
                 <p className="text-gray-600 dark:text-gray-300">Download study materials and notes</p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="mt-4 bg-gray-400 text-white px-4 py-2 rounded-lg"
+                  className="mt-4 bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
                 >
                   Login to Access
                 </button>
@@ -266,7 +306,7 @@ function App() {
                 <p className="text-gray-600 dark:text-gray-300">Track important exam dates</p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="mt-4 bg-gray-400 text-white px-4 py-2 rounded-lg"
+                  className="mt-4 bg-gray-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-500"
                 >
                   Login to Access
                 </button>
