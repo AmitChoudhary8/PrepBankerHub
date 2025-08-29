@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../../utils/supabase'
 import QuizManager from './QuizManager'
 import PDFManager from './PDFManager'
+import UserManager from './UserManager'
 
 const AdminDashboard = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview')
@@ -155,7 +156,7 @@ const AdminDashboard = ({ onLogout }) => {
               {/* Quick Actions */}
               <div className="bg-white p-6 rounded-lg shadow">
                 <h3 className="text-xl font-bold mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <button
                     onClick={() => setActiveTab('quiz-management')}
                     className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 transition-colors"
@@ -167,6 +168,12 @@ const AdminDashboard = ({ onLogout }) => {
                     className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 transition-colors"
                   >
                     📄 Add New PDF
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('user-management')}
+                    className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    👥 Manage Users
                   </button>
                   <button
                     onClick={() => setActiveTab('requests')}
@@ -184,6 +191,7 @@ const AdminDashboard = ({ onLogout }) => {
                   <p>• Database successfully initialized with sample data</p>
                   <p>• {stats.totalQuizzes} quiz(es) available for users</p>
                   <p>• {stats.totalPDFs} PDF(s) ready for download</p>
+                  <p>• {stats.totalUsers} user(s) registered on platform</p>
                   <p>• Admin panel fully operational</p>
                 </div>
               </div>
@@ -196,37 +204,8 @@ const AdminDashboard = ({ onLogout }) => {
           {/* PDF Management Tab */}
           {activeTab === 'pdf-management' && <PDFManager />}
 
-          {/* User Management Tab */}
-          {activeTab === 'user-management' && (
-            <div>
-              <h2 className="text-3xl font-bold mb-6">User Management</h2>
-              <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-xl font-bold mb-4">Registered Users</h3>
-                <div className="text-gray-600">
-                  <p className="mb-4">User management functionality coming soon...</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-semibold mb-2">Current Features:</h4>
-                      <ul className="space-y-1 text-sm">
-                        <li>• View total user count</li>
-                        <li>• Monitor user activity</li>
-                        <li>• Track user growth</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Coming Soon:</h4>
-                      <ul className="space-y-1 text-sm">
-                        <li>• Individual user profiles</li>
-                        <li>• User progress analytics</li>
-                        <li>• Export user data</li>
-                        <li>• Send notifications</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* User Management Tab - Now with UserManager component */}
+          {activeTab === 'user-management' && <UserManager />}
 
           {/* User Requests Tab */}
           {activeTab === 'requests' && (
