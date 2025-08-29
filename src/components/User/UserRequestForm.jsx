@@ -50,86 +50,75 @@ const UserRequestForm = ({ user }) => {
 }
 
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+ const handleSubmit = async (e) => {
+  e.preventDefault()
 
-    if (!validateForm()) return
+  if (!validateForm()) return
 
-    setLoading(true)
-    setError('')
-    setSuccess('')
+  setLoading(true)
+  setError('')
+  setSuccess('')
 
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError)
-        setError('🚨 Authentication error: ' + sessionError.message)
-        setLoading(false)
-        return
-      }
-
-      const insertData = {
-        title: formData.name.trim(),
-        description: formData.message.trim(),
-        email: formData.email.trim(),
-        pdf_link: formData.pdfLink.trim() || null,
-        request_type: formData.requestType,
-        status: 'pending',
-        created_at: new Date()
-      }
-
-      if (session?.user?.id) {
-        insertData.user_id = session.user.id
-      }
-
-      console.log('Inserting data:', insertData)
-
-      const { data, error: insertError } = await supabase
-        .from('user_requests')
-        .insert([insertData])
-        .select()
-
-      console.log('Supabase response:', { data, error: insertError })
-
-      if (insertError) {
-        console.error('Insert error:', insertError)
-        
-        if (insertError.code === '42501') {
-          setError('🔒 Permission denied. Please make sure you are logged in.')
-        } else if (insertError.code === '23502') {
-          setError('📝 Missing required fields. Please fill all mandatory fields.')
-        } else if (insertError.code === '23505') {
-          setError('⚠️ Duplicate request. You have already submitted a similar request.')
-        } else {
-          setError('❌ Database Error: ' + insertError.message)
-        }
-        
-        alert('Error Details: ' + JSON.stringify(insertError))
-        
-      } else {
-        console.log('Success:', data)
-        setSuccess('✅ Your request has been submitted successfully! We will review it and get back to you soon.')
-        
-        setFormData({
-          name: user?.user_metadata?.name || '',
-          email: user?.email || '',
-          message: '',
-          pdfLink: '',
-          requestType: 'general'
-        })
-        
-        alert('✅ Request submitted successfully!')
-      }
-
-    } catch (err) {
-      console.error('Catch error:', err)
-      setError('🌐 Network Error: ' + err.message + '. Please check your internet connection and try again.')
-      alert('Network Error: ' + err.message)
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    
+    if (sessionError) {
+      console.error('Session error:', sessionError)
+      setError('🚨 Authentication error: ' + sessionError.message)
+      setLoading(false)
+      return
     }
 
-    setLoading(false)
+    // 🎯 FIXED: Match exact database column names from your table
+    const insertData = {
+      name: formData.name.trim(),              // ✅ 'name' (your table has this)
+      message: formData.message.trim(),        // ✅ 'message' (your table has this) 
+      email: formData.email.trim(),            // ✅ 'email' (your table has this)
+      pdf_link: formData.pdfLink.trim() || null,  // ✅ 'pdf_link' (your table has this)
+      request_type: formData.requestType,      // ✅ 'request_type' (your table has this)
+      status: 'pending'                        // ✅ 'status' (your table has this)
+    }
+
+    // Add user_id if user is logged in  
+    if (session?.user?.id) {
+      insertData.user_id = session.user.id    // ✅ 'user_id' (your table has this)
+    }
+
+    console.log('Inserting data:', insertData)
+
+    const { data, error: insertError } = await supabase
+      .from('user_requests')
+      .insert([insertData])
+      .select()
+
+    if (insertError) {
+      console.error('Insert error:', insertError)
+      setError('❌ Database Error: ' + insertError.message)
+      alert('Error: ' + insertError.message)
+    } else {
+      console.log('Success:', data)
+      setSuccess('✅ Your request has been submitted successfully!')
+      
+      // Reset form
+      setFormData({
+        name: user?.user_metadata?.name || '',
+        email: user?.email || '',
+        message: '',
+        pdfLink: '',
+        requestType: 'general'
+      })
+      
+      alert('✅ Request submitted successfully!')
+    }
+
+  } catch (err) {
+    console.error('Catch error:', err)
+    setError('🌐 Network Error: ' + err.message)
+    alert('Network Error: ' + err.message)
   }
+
+  setLoading(false)
+}
 
   return (
     <div className="p-2 md:p-6">
