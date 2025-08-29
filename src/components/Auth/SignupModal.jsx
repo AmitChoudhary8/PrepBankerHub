@@ -37,8 +37,8 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
     if (error) {
       alert('Signup failed: ' + error.message)
     } else {
-      alert('Account created successfully! You can now login.')
-      onSwitchToLogin()
+      alert('Account created! Please check your email for verification link.')
+      onClose()
     }
     setLoading(false)
   }
@@ -47,7 +47,7 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Sign Up</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Create Account</h2>
           <button 
             onClick={onClose} 
             className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -113,7 +113,7 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               required
             >
-              <option value="">Select Exam Type</option>
+              <option value="">Select Banking Exam</option>
               <option value="SBI PO">SBI PO</option>
               <option value="IBPS PO">IBPS PO</option>
               <option value="RRB PO">RRB PO</option>
@@ -135,7 +135,7 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
               value={formData.password}
               onChange={handleInputChange}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              placeholder="Enter your password"
+              placeholder="Create a password"
               required
               minLength="6"
             />
@@ -146,7 +146,7 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
             disabled={loading}
             className="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? 'Creating account...' : 'Sign Up'}
+            {loading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 
@@ -162,9 +162,9 @@ const SignupModal = ({ onClose, onSwitchToLogin }) => {
           </p>
         </div>
 
-        <div className="mt-4 p-3 bg-green-50 dark:bg-green-900 rounded-lg">
-          <p className="text-xs text-green-800 dark:text-green-200 text-center">
-            🆓 All resources on PrepBankerHub are completely free!
+        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900 rounded-lg">
+          <p className="text-xs text-blue-800 dark:text-blue-200 text-center">
+            📧 You will receive a verification email after signup
           </p>
         </div>
       </div>
