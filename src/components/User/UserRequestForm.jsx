@@ -19,26 +19,36 @@ const UserRequestForm = ({ user }) => {
     setSuccess('')
   }
 
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      setError('❌ Name is required')
-      return false
-    }
-    if (!formData.email.trim()) {
-      setError('❌ Email is required')
-      return false
-    }
-    if (!formData.message.trim()) {
-      setError('❌ Message is required')
-      return false
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
-      setError('❌ Please enter a valid email address')
-      return false
-    }
-    return true
+ const validateForm = () => {
+  // Check if name field is empty or only whitespace
+  if (!formData.name || !formData.name.trim()) {
+    setError('❌ Name is required and cannot be empty')
+    return false
   }
+  if (!formData.email || !formData.email.trim()) {
+    setError('❌ Email is required and cannot be empty')
+    return false
+  }
+  if (!formData.message || !formData.message.trim()) {
+    setError('❌ Message is required and cannot be empty')
+    return false
+  }
+  
+  // Validate minimum length
+  if (formData.name.trim().length < 2) {
+    setError('❌ Name must be at least 2 characters long')
+    return false
+  }
+  
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(formData.email.trim())) {
+    setError('❌ Please enter a valid email address')
+    return false
+  }
+  
+  return true
+}
+
 
   const handleSubmit = async (e) => {
     e.preventDefault()
