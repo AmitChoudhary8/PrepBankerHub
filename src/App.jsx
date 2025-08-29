@@ -7,6 +7,7 @@ import AdminDashboard from './components/Admin/AdminDashboard'
 import QuizList from './components/User/QuizList'
 import QuizPlayer from './components/User/QuizPlayer'
 import PDFList from './components/User/PDFList'
+import ExamCalendar from './components/User/ExamCalendar'
 import './App.css'
 
 function App() {
@@ -21,8 +22,11 @@ function App() {
   const [showQuizList, setShowQuizList] = useState(false)
   const [selectedQuiz, setSelectedQuiz] = useState(null)
   
-  // New state for PDF functionality
+  // State for PDF functionality
   const [showPDFList, setShowPDFList] = useState(false)
+  
+  // New state for Exam Calendar functionality
+  const [showExamCalendar, setShowExamCalendar] = useState(false)
 
   useEffect(() => {
     // Check if user is logged in
@@ -60,6 +64,7 @@ function App() {
     setShowQuizList(false)
     setSelectedQuiz(null)
     setShowPDFList(false)
+    setShowExamCalendar(false)
   }
 
   const handleAdminLogout = () => {
@@ -77,6 +82,7 @@ function App() {
     setShowQuizList(false)
     setSelectedQuiz(null)
     setShowPDFList(false)
+    setShowExamCalendar(false)
   }
 
   // If admin is logged in, show admin dashboard instead of regular website
@@ -146,7 +152,7 @@ function App() {
       <main className="p-6 max-w-6xl mx-auto">
         
         {/* Home Page - Show when user is logged in but no section selected */}
-        {user && !showQuizList && !selectedQuiz && !showPDFList && (
+        {user && !showQuizList && !selectedQuiz && !showPDFList && !showExamCalendar && (
           <>
             <div className="text-center mb-8">
               <h2 className="text-4xl font-bold mb-4">
@@ -199,7 +205,10 @@ function App() {
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
                 <h3 className="text-xl font-bold mb-2">📅 Exam Calendar</h3>
                 <p className="text-gray-600 dark:text-gray-300">Track important exam dates</p>
-                <button className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+                <button 
+                  onClick={() => setShowExamCalendar(true)}
+                  className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                >
                   View Calendar
                 </button>
               </div>
@@ -238,7 +247,7 @@ function App() {
         )}
 
         {/* PDF List - Show when user wants to browse PDFs */}
-        {user && showPDFList && !showQuizList && !selectedQuiz && (
+        {user && showPDFList && !showQuizList && !selectedQuiz && !showExamCalendar && (
           <div>
             <button
               onClick={() => setShowPDFList(false)}
@@ -247,6 +256,19 @@ function App() {
               ← Back to Home
             </button>
             <PDFList />
+          </div>
+        )}
+
+        {/* Exam Calendar - Show when user wants to view calendar */}
+        {user && showExamCalendar && !showQuizList && !selectedQuiz && !showPDFList && (
+          <div>
+            <button
+              onClick={() => setShowExamCalendar(false)}
+              className="mb-6 flex items-center text-purple-600 hover:text-purple-800 font-medium"
+            >
+              ← Back to Home
+            </button>
+            <ExamCalendar />
           </div>
         )}
 
