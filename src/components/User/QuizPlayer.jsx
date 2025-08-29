@@ -8,6 +8,7 @@ const QuizPlayer = ({ quiz, user, onComplete }) => {
   const [timeLeft, setTimeLeft] = useState(0)
   const [timeTaken, setTimeTaken] = useState(0)
   const [showResult, setShowResult] = useState(false)
+  const [showAnswerReview, setShowAnswerReview] = useState(false) // New state
   const [loading, setLoading] = useState(true)
   const [quizStartTime, setQuizStartTime] = useState(null)
 
@@ -16,7 +17,6 @@ const QuizPlayer = ({ quiz, user, onComplete }) => {
   }, [])
 
   useEffect(() => {
-    // Timer for quiz time limit
     if (timeLeft > 0 && !showResult) {
       const timer = setTimeout(() => {
         setTimeLeft(timeLeft - 1)
@@ -24,7 +24,6 @@ const QuizPlayer = ({ quiz, user, onComplete }) => {
       }, 1000)
       return () => clearTimeout(timer)
     } else if (timeLeft === 0 && !showResult && questions.length > 0) {
-      // Time's up! Submit automatically
       handleSubmit()
     }
   }, [timeLeft, showResult, questions.length])
@@ -40,7 +39,7 @@ const QuizPlayer = ({ quiz, user, onComplete }) => {
       console.error('Error fetching questions:', error)
     } else {
       setQuestions(data || [])
-      setTimeLeft(quiz.time_limit * 60) // Convert minutes to seconds
+      setTimeLeft(quiz.time_limit * 60)
       setQuizStartTime(new Date())
     }
     setLoading(false)
@@ -68,7 +67,6 @@ const QuizPlayer = ({ quiz, user, onComplete }) => {
   }
 
   const handleSubmit = async () => {
-    // Calculate score
     let correctCount = 0
     const answers = []
 
@@ -85,10 +83,9 @@ const QuizPlayer = ({ quiz, user, onComplete }) => {
     })
 
     const finalScore = Math.round((correctCount / questions.length) * 100)
-    const finalTimeTaken = Math.round((new Date() - quizStartTime) / 1000 / 60) // in minutes
+    const finalTimeTaken = Math.round((new Date() - quizStartTime) / 1000 / 60)
 
     try {
-      // Save quiz attempt
       const { data: attemptData, error: attemptError } = await supabase
         .from('quiz_attempts')
         .insert({
@@ -106,7 +103,6 @@ const QuizPlayer = ({ quiz, user, onComplete }) => {
         return
       }
 
-      // Save individual answers
       const answersToSave = answers.map(answer => ({
         ...answer,
         attempt_id: attemptData[0].id
@@ -157,6 +153,128 @@ const QuizPlayer = ({ quiz, user, onComplete }) => {
     return <div className="text-center p-8">Loading quiz...</div>
   }
 
+  // Answer Review Component
+  if (showAnswerReview) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-bold">📋 Answer Review</h2>
+            <button
+              onClick={() => setShowAnswerReview(false)}
+              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700"
+            >
+              Back to Results
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {questions.map((question, index) => {
+              const userAnswer = selectedAnswers[index]
+              const isCorrect = userAnswer === question.correct_answer
+
+              return (
+                <div key={question.id} className="border rounded-lg p-6 bg-gray-50">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold mb-3">
+                      Question {index + 1}: {question.question_text}
+                    </h3>
+                  </div>
+
+                  {/* Options with correct/incorrect indication */}
+                  <div className="grid grid-cols-1 gap-2 mb-4">
+                    {['A', 'B', 'C', 'D'].map(option => {
+                      const optionText = question[`option_${option.toLowerCase()}`]
+                      const isUserChoice = userAnswer === option
+                      const isCorrectOption = question.correct_answer === option
+
+                      return (
+                        <div
+                          key={option}
+                          className={`p-3 rounded-lg border ${
+                            isCorrectOption
+                              ? 'bg-green-100 border-green-500 text-green-800'
+                              : isUserChoice && !isCorrectOption
+                              ? 'bg-red-100 border-red-500 text-red-800'
+                              : 'bg-white border-gray-300'
+                          }`}
+                        >
+                          <span className="font-medium mr-2">{option}.</span>
+                          <span>{optionText}</span>
+                          {isCorrectOption && (
+                            <span className="ml-2 text-green-600 font-bold">✅ Correct</span>
+                          )}
+                          {isUserChoice && !isCorrectOption && (
+                            <span className="ml-2 text-red-600 font-bold">❌ Your Choice</span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* User's answer summary */}
+                  <div className="bg-white p-4 rounded-lg border">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">Your Answer: </span>
+                        <span className={userAnswer ? 'font-bold' : 'text-gray-500'}>
+                          {userAnswer || 'Not Answered'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium">Correct Answer: </span>
+                        <span className="font-bold text-green-600">{question.correct_answer}</span>
+                      </div>
+                      <div>
+                        <span className={`px-2 py-1 rounded-full text-sm font-bold ${
+                          isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {isCorrect ? '✅ Correct' : '❌ Incorrect'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Explanation if available */}
+                  {question.explanation && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="font-semibold text-blue-800 mb-2">💡 Explanation:</h4>
+                      <p className="text-blue-700">{question.explanation}</p>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Summary at bottom */}
+          <div className="mt-8 p-6 bg-gray-100 rounded-lg">
+            <h3 className="text-xl font-bold mb-4">📊 Quiz Summary</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600">{showResult.score}%</p>
+                <p className="text-gray-600">Final Score</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600">{showResult.correctAnswers}</p>
+                <p className="text-gray-600">Correct Answers</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-purple-600">{showResult.timeTaken}</p>
+                <p className="text-gray-600">Minutes Taken</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-orange-600">#{showResult.rank}</p>
+                <p className="text-gray-600">Your Rank</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Quiz Results with View Answers Button
   if (showResult) {
     return (
       <div className="max-w-2xl mx-auto p-6">
@@ -194,19 +312,28 @@ const QuizPlayer = ({ quiz, user, onComplete }) => {
             </p>
           </div>
 
-          {/* Action Buttons */}
-          <div className="space-x-4">
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-            >
-              Take Again
-            </button>
+          {/* Action Buttons - Including View Answers */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                onClick={() => setShowAnswerReview(true)}
+                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                📋 View Answers
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                🔄 Take Again
+              </button>
+            </div>
+            
             <button
               onClick={onComplete}
-              className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
+              className="w-full bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
             >
-              Back to Quizzes
+              🏠 Back to Quizzes
             </button>
           </div>
         </div>
@@ -214,6 +341,7 @@ const QuizPlayer = ({ quiz, user, onComplete }) => {
     )
   }
 
+  // Rest of the quiz playing interface (same as before)
   const currentQuestion = questions[currentIndex]
 
   return (
