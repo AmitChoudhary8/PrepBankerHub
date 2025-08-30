@@ -2,262 +2,213 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../../utils/supabase'
 
 const ExamCalendar = () => {
-  const [events, setEvents] = useState([])
+  const [examEvents, setExamEvents] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth())
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
 
   useEffect(() => {
-    fetchEvents()
+    fetchExamEvents()
   }, [])
 
-  const fetchEvents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('exam_calendar')
-        .select('*')
-        .order('exam_date', { ascending: true })
+  const fetchExamEvents = async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('exam_calendar')
+      .select('*')
+      .order('created_at', { ascending: true })
 
-      if (error) {
-        console.error('Error fetching events:', error)
-        throw error
-      }
-      
-      console.log('Fetched events:', data) // Debug log
-      setEvents(data || [])
-    } catch (error) {
+    if (error) {
       console.error('Error fetching exam events:', error)
-      setEvents([])
+    } else {
+      setExamEvents(data || [])
     }
     setLoading(false)
   }
 
-  const filteredEvents = events.filter(event => {
-    if (selectedCategory === 'all') return true
-    return event.category === selectedCategory
-  })
-
   const formatDate = (dateString) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('en-IN', {
       weekday: 'short',
-      year: 'numeric',
+      day: '2-digit',
       month: 'short',
-      day: 'numeric'
+      year: 'numeric'
     })
   }
 
-  const getTimeUntilExam = (examDate) => {
-    const now = new Date()
-    const exam = new Date(examDate)
-    const timeDiff = exam.getTime() - now.getTime()
-    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24))
-    
-    if (daysDiff < 0) return 'Past'
-    if (daysDiff === 0) return 'Today'
-    if (daysDiff === 1) return 'Tomorrow'
-    return `${daysDiff} days left`
+  const isUpcoming = (dateString) => {
+    const examDate = new Date(dateString)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Reset time for date comparison
+    return examDate >= today
   }
 
-  const getStatusColor = (examDate) => {
-    const now = new Date()
-    const exam = new Date(examDate)
-    const timeDiff = exam.getTime() - now.getTime()
-    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24))
-    
-    if (daysDiff < 0) return 'bg-gray-100 text-gray-600'
-    if (daysDiff <= 7) return 'bg-red-100 text-red-700'
-    if (daysDiff <= 30) return 'bg-yellow-100 text-yellow-700'
-    return 'bg-green-100 text-green-700'
+  const getDaysUntilExam = (dateString) => {
+    const examDate = new Date(dateString)
+    const today = new Date()
+    const diffTime = examDate - today
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
   }
+
+  const getUpcomingExams = () => {
+    const upcoming = []
+    examEvents.forEach(event => {
+      event.dates.forEach(date => {
+        if (isUpcoming(date)) {
+          upcoming.push({
+            name: event.name,
+            date: date,
+            daysUntil: getDaysUntilExam(date)
+          })
+        }
+      })
+    })
+    return upcoming.sort((a, b) => new Date(a.date) - new Date(b.date))
+  }
+
+  const upcomingExams = getUpcomingExams()
 
   if (loading) {
     return (
-      <div className="p-2 md:p-6">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">📅 Exam Calendar</h2>
-          
-          {/* Loading Skeleton */}
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-lg shadow-md p-4 md:p-6 animate-pulse">
-                <div className="flex justify-between items-center">
-                  <div className="space-y-2 flex-1">
-                    <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  </div>
-                  <div className="h-8 w-24 bg-gray-200 rounded"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="max-w-4xl mx-auto p-6 text-center">
+        <p className="text-gray-500">Loading exam calendar...</p>
       </div>
     )
   }
 
   return (
-    <div className="p-2 md:p-6">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold mb-6 text-center">📅 Exam Calendar</h2>
-        
-        {/* Mobile-Friendly Filter */}
-        <div className="bg-white p-3 md:p-4 rounded-lg shadow mb-4 md:mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-            <label className="text-sm font-medium">Filter by Category:</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full sm:w-auto p-3 border rounded-lg text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              style={{ fontSize: '16px' }}
-            >
-              <option value="all">All Exams</option>
-              <option value="banking">Banking</option>
-              <option value="ssc">SSC</option>
-              <option value="railway">Railway</option>
-              <option value="upsc">UPSC</option>
-            </select>
-          </div>
-          
-          <div className="mt-3 text-sm text-gray-600">
-            {filteredEvents.length} exam{filteredEvents.length !== 1 ? 's' : ''} found
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-bold mb-4">📅 Exam Calendar</h2>
+        <p className="text-gray-600">Stay updated with upcoming banking exam dates</p>
+      </div>
+
+      {/* Upcoming Exams Section */}
+      {upcomingExams.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-2xl font-bold mb-4 text-red-600">🔥 Upcoming Exams</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {upcomingExams.slice(0, 6).map((exam, index) => (
+              <div 
+                key={index}
+                className={`p-4 rounded-lg shadow-lg border-l-4 ${
+                  exam.daysUntil <= 7 
+                    ? 'bg-red-50 border-red-500' 
+                    : exam.daysUntil <= 30 
+                    ? 'bg-yellow-50 border-yellow-500' 
+                    : 'bg-blue-50 border-blue-500'
+                }`}
+              >
+                <h4 className="font-semibold text-gray-800 mb-2">{exam.name}</h4>
+                <p className="text-sm text-gray-600 mb-2">{formatDate(exam.date)}</p>
+                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                  exam.daysUntil <= 7 
+                    ? 'bg-red-100 text-red-800' 
+                    : exam.daysUntil <= 30 
+                    ? 'bg-yellow-100 text-yellow-800' 
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {exam.daysUntil === 0 ? 'Today!' : 
+                   exam.daysUntil === 1 ? 'Tomorrow' : 
+                   `${exam.daysUntil} days left`}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      )}
 
-        {/* No Events Found */}
-        {filteredEvents.length === 0 ? (
-          <div className="text-center py-8 md:py-12">
-            <div className="text-6xl md:text-8xl mb-4">📅</div>
-            <h3 className="text-xl md:text-2xl font-bold mb-2">No Exams Found</h3>
-            <p className="text-gray-600 text-sm md:text-base">
-              {selectedCategory !== 'all' 
-                ? 'Try selecting a different category' 
-                : 'Check back later for upcoming exams!'}
-            </p>
+      {/* All Exams List */}
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h3 className="text-2xl font-bold mb-6">📋 All Scheduled Exams</h3>
+        
+        {examEvents.length === 0 ? (
+          <div className="text-center p-8">
+            <div className="text-6xl mb-4">📅</div>
+            <h4 className="text-xl font-bold mb-2">No Exams Scheduled</h4>
+            <p className="text-gray-600">Check back later for updates on upcoming exam dates.</p>
           </div>
         ) : (
-          /* Mobile-Optimized Events List */
-          <div className="space-y-4">
-            {filteredEvents.map((event) => (
-              <div
-                key={event.id}
-                className="bg-white rounded-lg shadow-md p-4 md:p-6 hover:shadow-lg transition-shadow"
-              >
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-3 sm:space-y-0">
-                  {/* Event Info */}
-                  <div className="flex-1 pr-0 sm:pr-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-lg md:text-xl font-semibold text-gray-800 flex-1">
-                        {event.exam_name || event.title}
-                      </h3>
-                      {event.category && (
-                        <span className="ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-lg text-xs font-medium">
-                          {event.category}
-                        </span>
-                      )}
-                    </div>
-                    
-                    {event.description && (
-                      <p className="text-sm md:text-base text-gray-600 mb-3">
-                        {event.description}
-                      </p>
-                    )}
-                    
-                    <div className="text-sm text-gray-500 space-y-1">
-                      <div className="flex items-center">
-                        🗓️ <span className="ml-1">{formatDate(event.exam_date)}</span>
-                      </div>
-                      
-                      {event.registration_deadline && (
-                        <div className="flex items-center">
-                          📝 <span className="ml-1">Registration: {formatDate(event.registration_deadline)}</span>
-                        </div>
-                      )}
-                      
-                      {event.application_fee && (
-                        <div className="flex items-center">
-                          💰 <span className="ml-1">Fee: ₹{event.application_fee}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Status Badge & Actions */}
-                  <div className="flex flex-col items-start sm:items-end space-y-2">
-                    <span className={`px-3 py-2 rounded-lg text-sm font-medium ${getStatusColor(event.exam_date)}`}>
-                      {getTimeUntilExam(event.exam_date)}
-                    </span>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex space-x-2">
-                      {event.registration_link && (
-                        <button
-                          onClick={() => window.open(event.registration_link, '_blank')}
-                          className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 text-xs"
-                          style={{ minHeight: '36px' }}
-                        >
-                          Apply Now
-                        </button>
-                      )}
-                      
-                      {event.notification_url && (
-                        <button
-                          onClick={() => window.open(event.notification_url, '_blank')}
-                          className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-xs"
-                          style={{ minHeight: '36px' }}
-                        >
-                          View Details
-                        </button>
-                      )}
-                    </div>
-                  </div>
+          <div className="space-y-6">
+            {examEvents.map((event) => (
+              <div key={event.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-4">
+                  <h4 className="text-xl font-bold text-gray-800">{event.name}</h4>
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {event.dates.length} date{event.dates.length > 1 ? 's' : ''}
+                  </span>
                 </div>
                 
-                {/* Additional Info Bar */}
-                {(event.total_posts || event.age_limit || event.qualification) && (
-                  <div className="mt-4 pt-3 border-t border-gray-100">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600">
-                      {event.total_posts && (
-                        <div>👥 {event.total_posts} posts</div>
-                      )}
-                      {event.age_limit && (
-                        <div>🎂 Age: {event.age_limit}</div>
-                      )}
-                      {event.qualification && (
-                        <div>🎓 {event.qualification}</div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {event.dates.sort().map((date, index) => {
+                    const upcoming = isUpcoming(date)
+                    const daysLeft = getDaysUntilExam(date)
+                    
+                    return (
+                      <div 
+                        key={index}
+                        className={`p-3 rounded-lg border ${
+                          upcoming 
+                            ? daysLeft <= 7 
+                              ? 'bg-red-50 border-red-200 text-red-800' 
+                              : 'bg-green-50 border-green-200 text-green-800'
+                            : 'bg-gray-50 border-gray-200 text-gray-500'
+                        }`}
+                      >
+                        <div className="font-medium">{formatDate(date)}</div>
+                        {upcoming && (
+                          <div className="text-sm">
+                            {daysLeft === 0 ? '🔥 Today!' : 
+                             daysLeft === 1 ? '⏰ Tomorrow' : 
+                             `📆 ${daysLeft} days left`}
+                          </div>
+                        )}
+                        {!upcoming && (
+                          <div className="text-sm">✅ Completed</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                
+                <div className="mt-4 text-sm text-gray-500">
+                  Added: {new Date(event.created_at).toLocaleDateString()}
+                </div>
               </div>
             ))}
           </div>
         )}
+      </div>
 
-        {/* Quick Actions - Mobile Only */}
-        <div className="fixed bottom-4 left-4 right-4 sm:hidden">
-          <div className="bg-white rounded-lg shadow-lg p-3 border">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-600">
-                {filteredEvents.length} exams
-              </span>
-              <div className="flex space-x-2">
-                <button 
-                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                  className="bg-blue-600 text-white px-3 py-1 rounded text-xs"
-                >
-                  ↑ Top
-                </button>
-                <button 
-                  onClick={() => setSelectedCategory('all')}
-                  className="bg-gray-600 text-white px-3 py-1 rounded text-xs"
-                >
-                  All
-                </button>
-              </div>
+      {/* Statistics */}
+      {examEvents.length > 0 && (
+        <div className="bg-gray-100 p-6 rounded-lg mt-8">
+          <h3 className="text-lg font-bold mb-4">📊 Calendar Statistics</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold text-blue-600">{examEvents.length}</p>
+              <p className="text-gray-600 text-sm">Total Exams</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-600">{upcomingExams.length}</p>
+              <p className="text-gray-600 text-sm">Upcoming</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-red-600">
+                {upcomingExams.filter(exam => exam.daysUntil <= 7).length}
+              </p>
+              <p className="text-gray-600 text-sm">This Week</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-purple-600">
+                {examEvents.reduce((sum, event) => sum + event.dates.length, 0)}
+              </p>
+              <p className="text-gray-600 text-sm">Total Dates</p>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
