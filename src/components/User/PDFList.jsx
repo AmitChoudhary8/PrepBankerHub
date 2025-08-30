@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../utils/supabase'
+import ShareButton from '../ShareButton'
 
 const PDFList = () => {
   const [pdfs, setPdfs] = useState([])
@@ -134,9 +135,19 @@ const PDFList = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {filteredPDFs.map((pdf) => (
             <div key={pdf.id} className="bg-white p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
-              {/* PDF Header */}
+              {/* PDF Header with Share Button */}
               <div className="text-center mb-3 md:mb-4">
-                <div className="text-4xl md:text-6xl text-red-500 mb-2">📄</div>
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1"></div>
+                  <div className="text-4xl md:text-6xl text-red-500">📄</div>
+                  <div className="flex-1 flex justify-end">
+                    <ShareButton 
+                      itemType="pdf" 
+                      itemId={pdf.id} 
+                      itemTitle={pdf.title}
+                    />
+                  </div>
+                </div>
                 <h3 className="text-sm md:text-lg font-bold text-gray-800 line-clamp-2">
                   {pdf.title}
                 </h3>
