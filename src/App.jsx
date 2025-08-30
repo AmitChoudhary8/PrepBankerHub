@@ -25,6 +25,10 @@ function App() {
   const [showPDFList, setShowPDFList] = useState(false)
   const [showExamCalendar, setShowExamCalendar] = useState(false)
   const [showRequestForm, setShowRequestForm] = useState(false)
+  
+  // Share URL handling states
+  const [sharedItemType, setSharedItemType] = useState(null)
+  const [sharedItemId, setSharedItemId] = useState(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -50,6 +54,27 @@ function App() {
       }
     }
 
+    // Handle shared URLs - Check if URL contains share parameters
+    const currentPath = window.location.pathname
+    const pathSegments = currentPath.split('/').filter(segment => segment)
+    
+    if (pathSegments.length === 2) {
+      const [itemType, itemId] = pathSegments
+      if ((itemType === 'pdf' || itemType === 'quiz') && itemId) {
+        setSharedItemType(itemType)
+        setSharedItemId(itemId)
+        
+        // Auto-navigate to appropriate section when user is logged in
+        if (session?.user) {
+          if (itemType === 'pdf') {
+            setShowPDFList(true)
+          } else if (itemType === 'quiz') {
+            setShowQuizList(true)
+          }
+        }
+      }
+    }
+
     return () => subscription.unsubscribe()
   }, [])
 
@@ -70,6 +95,13 @@ function App() {
     setShowPDFList(false)
     setShowExamCalendar(false)
     setShowRequestForm(false)
+    setSharedItemType(null)
+    setSharedItemId(null)
+    
+    // Clean URL when going back to home
+    if (window.location.pathname !== '/') {
+      window.history.pushState({}, '', '/')
+    }
   }
 
   const resetToHome = () => {
@@ -159,6 +191,22 @@ function App() {
       {/* Main Content - Mobile Responsive */}
       <main className="p-3 md:p-6 max-w-6xl mx-auto">
         
+        {/* Shared Content Message - Show when someone visits via shared link */}
+        {sharedItemType && sharedItemId && !user && (
+          <div className="mb-4 md:mb-6 p-4 bg-blue-100 dark:bg-blue-800 rounded-lg text-center">
+            <p className="text-blue-800 dark:text-blue-200 text-sm md:text-base mb-3">
+              🔗 You've accessed a shared {sharedItemType}! Please login to view the content.
+            </p>
+            <button
+              onClick={() => setShowLogin(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium"
+              style={{ minHeight: '44px' }}
+            >
+              Login to Access
+            </button>
+          </div>
+        )}
+        
         {/* Home Page - Mobile Optimized */}
         {user && !showQuizList && !selectedQuiz && !showPDFList && !showExamCalendar && !showRequestForm && (
           <>
@@ -183,6 +231,28 @@ function App() {
                 ✅ Welcome back, {user.user_metadata?.name || 'User'}! You are logged in.
               </p>
             </div>
+
+            {/* Show shared content notification if user accessed via shared link */}
+            {sharedItemType && sharedItemId && (
+              <div className="mb-4 md:mb-6 p-3 md:p-4 bg-yellow-100 dark:bg-yellow-800 rounded-lg text-center">
+                <p className="text-yellow-800 dark:text-yellow-200 text-sm md:text-base mb-3">
+                  🎉 You accessed a shared {sharedItemType}! Click below to view it:
+                </p>
+                <button
+                  onClick={() => {
+                    if (sharedItemType === 'pdf') {
+                      setShowPDFList(true)
+                    } else if (sharedItemType === 'quiz') {
+                      setShowQuizList(true)
+                    }
+                  }}
+                  className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 text-sm font-medium"
+                  style={{ minHeight: '44px' }}
+                >
+                  View Shared {sharedItemType.toUpperCase()}
+                </button>
+              </div>
+            )}
 
             {/* Mobile-Optimized Quick Links */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-6 md:mt-8">
@@ -393,49 +463,4 @@ function App() {
                 </p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="w-full bg-gray-400 text-white px-3 md:px-4 py-3 rounded-lg cursor-pointer hover:bg-gray-500 text-sm md:text-base"
-                  style={{ minHeight: '44px' }}
-                >
-                  Login to Access
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-      </main>
-
-      {/* Footer with Social Media Links */}
-      <Footer />
-
-      {/* Modals */}
-      {showLogin && (
-        <LoginModal
-          onClose={() => setShowLogin(false)}
-          onSwitchToSignup={() => {
-            setShowLogin(false)
-            setShowSignup(true)
-          }}
-        />
-      )}
-
-      {showSignup && (
-        <SignupModal
-          onClose={() => setShowSignup(false)}
-          onSwitchToLogin={() => {
-            setShowSignup(false)
-            setShowLogin(true)
-          }}
-        />
-      )}
-
-      {showAdminLogin && (
-        <AdminLogin
-          onClose={() => setShowAdminLogin(false)}
-          onAdminLogin={setIsAdmin}
-        />
-      )}
-    </div>
-  )
-}
-
-export default App
+                  className="w-full bg-gray-400 text-white
