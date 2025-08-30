@@ -19,13 +19,13 @@ function App() {
   const [showSignup, setShowSignup] = useState(false)
   const [showAdminLogin, setShowAdminLogin] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
-  
+
   const [showQuizList, setShowQuizList] = useState(false)
   const [selectedQuiz, setSelectedQuiz] = useState(null)
   const [showPDFList, setShowPDFList] = useState(false)
   const [showExamCalendar, setShowExamCalendar] = useState(false)
   const [showRequestForm, setShowRequestForm] = useState(false)
-  
+
   // Share URL handling states
   const [sharedItemType, setSharedItemType] = useState(null)
   const [sharedItemId, setSharedItemId] = useState(null)
@@ -57,13 +57,13 @@ function App() {
     // Handle shared URLs - Check if URL contains share parameters
     const currentPath = window.location.pathname
     const pathSegments = currentPath.split('/').filter(segment => segment)
-    
+
     if (pathSegments.length === 2) {
       const [itemType, itemId] = pathSegments
       if ((itemType === 'pdf' || itemType === 'quiz') && itemId) {
         setSharedItemType(itemType)
         setSharedItemId(itemId)
-        
+
         // Auto-navigate to appropriate section when user is logged in
         if (session?.user) {
           if (itemType === 'pdf') {
@@ -97,7 +97,7 @@ function App() {
     setShowRequestForm(false)
     setSharedItemType(null)
     setSharedItemId(null)
-    
+
     // Clean URL when going back to home
     if (window.location.pathname !== '/') {
       window.history.pushState({}, '', '/')
@@ -128,13 +128,13 @@ function App() {
                 alt="PrepBankerHub Logo" 
                 className="h-10 md:h-14 w-auto object-contain max-w-full"
                 style={{ 
-                  maxHeight: '56px', // Prevents logo from being too large
-                  maxWidth: '300px'   // Responsive max width
+                  maxHeight: '56px',
+                  maxWidth: '300px'
                 }}
               />
             </button>
           </div>
-          
+
           {/* Mobile-Optimized Controls */}
           <div className="flex items-center space-x-1 md:space-x-4">
             {/* Dark Mode Toggle - Compact on mobile */}
@@ -190,7 +190,7 @@ function App() {
 
       {/* Main Content - Mobile Responsive */}
       <main className="p-3 md:p-6 max-w-6xl mx-auto">
-        
+
         {/* Shared Content Message - Show when someone visits via shared link */}
         {sharedItemType && sharedItemId && !user && (
           <div className="mb-4 md:mb-6 p-4 bg-blue-100 dark:bg-blue-800 rounded-lg text-center">
@@ -206,7 +206,7 @@ function App() {
             </button>
           </div>
         )}
-        
+
         {/* Home Page - Mobile Optimized */}
         {user && !showQuizList && !selectedQuiz && !showPDFList && !showExamCalendar && !showRequestForm && (
           <>
@@ -217,7 +217,7 @@ function App() {
               <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 px-4">
                 Complete Banking Exam Preparation Platform
               </p>
-              
+
               <div className="mt-4 md:mt-6 p-4 md:p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white mx-2 md:mx-0">
                 <h3 className="text-lg md:text-2xl font-bold">
                   👉 All Resources on this Website are 100% Free
@@ -269,7 +269,7 @@ function App() {
                   Start Quiz
                 </button>
               </div>
-              
+
               <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
                 <h3 className="text-lg md:text-xl font-bold mb-2">📄 PDF Downloads</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
@@ -283,7 +283,7 @@ function App() {
                   View PDFs
                 </button>
               </div>
-              
+
               <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
                 <h3 className="text-lg md:text-xl font-bold mb-2">📅 Exam Calendar</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
@@ -398,7 +398,7 @@ function App() {
               <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 px-4">
                 Complete Banking Exam Preparation Platform
               </p>
-              
+
               <div className="mt-4 md:mt-6 p-4 md:p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white mx-2 md:mx-0">
                 <h3 className="text-lg md:text-2xl font-bold">
                   👉 All Resources on this Website are 100% Free
@@ -427,7 +427,7 @@ function App() {
                   Login to Access
                 </button>
               </div>
-              
+
               <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
                 <h3 className="text-lg md:text-xl font-bold mb-2">📄 PDF Downloads</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
@@ -441,7 +441,7 @@ function App() {
                   Login to Access
                 </button>
               </div>
-              
+
               <div className="bg-white dark:bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg">
                 <h3 className="text-lg md:text-xl font-bold mb-2">📅 Exam Calendar</h3>
                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-300 mb-3 md:mb-4">
@@ -463,4 +463,49 @@ function App() {
                 </p>
                 <button 
                   onClick={() => setShowLogin(true)}
-                  className="w-full bg-gray-400 text-white
+                  className="w-full bg-gray-400 text-white px-3 md:px-4 py-3 rounded-lg cursor-pointer hover:bg-gray-500 text-sm md:text-base"
+                  style={{ minHeight: '44px' }}
+                >
+                  Login to Access
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </main>
+
+      {/* Footer with Social Media Links */}
+      <Footer />
+
+      {/* Modals */}
+      {showLogin && (
+        <LoginModal
+          onClose={() => setShowLogin(false)}
+          onSwitchToSignup={() => {
+            setShowLogin(false)
+            setShowSignup(true)
+          }}
+        />
+      )}
+
+      {showSignup && (
+        <SignupModal
+          onClose={() => setShowSignup(false)}
+          onSwitchToLogin={() => {
+            setShowSignup(false)
+            setShowLogin(true)
+          }}
+        />
+      )}
+
+      {showAdminLogin && (
+        <AdminLogin
+          onClose={() => setShowAdminLogin(false)}
+          onAdminLogin={setIsAdmin}
+        />
+      )}
+    </div>
+  )
+}
+
+export default App
