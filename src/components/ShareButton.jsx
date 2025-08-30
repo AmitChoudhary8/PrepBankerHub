@@ -11,7 +11,6 @@ const ShareButton = ({ itemType, itemId, itemTitle }) => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
-      // Fallback for browsers that don't support clipboard API
       const shareUrl = `${window.location.origin}/${itemType}/${itemId}`
       const textArea = document.createElement('textarea')
       textArea.value = shareUrl
@@ -56,4 +55,3 @@ const ShareButton = ({ itemType, itemId, itemTitle }) => {
 }
 
 export default ShareButton
-        
