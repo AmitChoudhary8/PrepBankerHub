@@ -4,6 +4,7 @@ import QuizManager from './QuizManager'
 import PDFManager from './PDFManager'
 import UserManager from './UserManager'
 import ExamCalendarManager from './ExamCalendarManager'
+import UserRequestsManager from './UserRequestsManager'
 
 const AdminDashboard = ({ onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview')
@@ -304,38 +305,8 @@ const AdminDashboard = ({ onLogout }) => {
           {/* Exam Calendar Tab */}
           {activeTab === 'exam-calendar' && <ExamCalendarManager />}
 
-          {/* User Requests Tab */}
-          {activeTab === 'requests' && (
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">User Requests & Submissions</h2>
-              <div className="bg-white p-4 md:p-6 rounded-lg shadow">
-                <h3 className="text-lg md:text-xl font-bold mb-4">Pending Requests</h3>
-                <div className="text-gray-600">
-                  <p className="mb-4 text-sm md:text-base">Request management functionality coming soon...</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <div>
-                      <h4 className="font-semibold mb-2 text-sm md:text-base">Request Types:</h4>
-                      <ul className="space-y-1 text-xs md:text-sm">
-                        <li>• PDF upload requests</li>
-                        <li>• Quiz suggestions</li>
-                        <li>• Content feedback</li>
-                        <li>• Feature requests</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2 text-sm md:text-base">Management Features:</h4>
-                      <ul className="space-y-1 text-xs md:text-sm">
-                        <li>• Approve/Reject submissions</li>
-                        <li>• Send response messages</li>
-                        <li>• Priority handling</li>
-                        <li>• Status tracking</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* ✅ User Requests Tab - NOW WITH FULL FUNCTIONALITY */}
+          {activeTab === 'requests' && <UserRequestsManager onUpdate={fetchStats} />}
 
           {/* Mobile Bottom Spacing */}
           <div className="h-16 md:h-0"></div>
