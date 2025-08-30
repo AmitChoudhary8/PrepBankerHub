@@ -19,106 +19,116 @@ const UserRequestForm = ({ user }) => {
     setSuccess('')
   }
 
- const validateForm = () => {
-  // Check if name field is empty or only whitespace
-  if (!formData.name || !formData.name.trim()) {
-    setError('❌ Name is required and cannot be empty')
-    return false
-  }
-  if (!formData.email || !formData.email.trim()) {
-    setError('❌ Email is required and cannot be empty')
-    return false
-  }
-  if (!formData.message || !formData.message.trim()) {
-    setError('❌ Message is required and cannot be empty')
-    return false
-  }
-  
-  // Validate minimum length
-  if (formData.name.trim().length < 2) {
-    setError('❌ Name must be at least 2 characters long')
-    return false
-  }
-  
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(formData.email.trim())) {
-    setError('❌ Please enter a valid email address')
-    return false
-  }
-  
-  return true
-}
-
-
- const handleSubmit = async (e) => {
-  e.preventDefault()
-
-  if (!validateForm()) return
-
-  setLoading(true)
-  setError('')
-  setSuccess('')
-
-  try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+  const validateForm = () => {
+    // name is required (NOT NULL constraint)
+    if (!formData.name || !formData.name.trim()) {
+      setError('❌ Name is required and cannot be empty')
+      return false
+    }
     
-    if (sessionError) {
-      console.error('Session error:', sessionError)
-      setError('🚨 Authentication error: ' + sessionError.message)
-      setLoading(false)
-      return
+    if (formData.name.trim().length < 2) {
+      setError('❌ Name must be at least 2 characters long')
+      return false
     }
 
-    // 🎯 FIXED: Match exact database column names from your table
-    const insertData = {
-      name: formData.name.trim(),              // ✅ 'name' (your table has this)
-      message: formData.message.trim(),        // ✅ 'message' (your table has this) 
-      email: formData.email.trim(),            // ✅ 'email' (your table has this)
-      pdf_link: formData.pdfLink.trim() || null,  // ✅ 'pdf_link' (your table has this)
-      request_type: formData.requestType,      // ✅ 'request_type' (your table has this)
-      status: 'pending'                        // ✅ 'status' (your table has this)
+    // Basic email validation if provided
+    if (formData.email && formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.email.trim())) {
+        setError('❌ Please enter a valid email address')
+        return false
+      }
     }
 
-    // Add user_id if user is logged in  
-    if (session?.user?.id) {
-      insertData.user_id = session.user.id    // ✅ 'user_id' (your table has this)
-    }
-
-    console.log('Inserting data:', insertData)
-
-    const { data, error: insertError } = await supabase
-      .from('user_requests')
-      .insert([insertData])
-      .select()
-
-    if (insertError) {
-      console.error('Insert error:', insertError)
-      setError('❌ Database Error: ' + insertError.message)
-      alert('Error: ' + insertError.message)
-    } else {
-      console.log('Success:', data)
-      setSuccess('✅ Your request has been submitted successfully!')
-      
-      // Reset form
-      setFormData({
-        name: user?.user_metadata?.name || '',
-        email: user?.email || '',
-        message: '',
-        pdfLink: '',
-        requestType: 'general'
-      })
-      
-      alert('✅ Request submitted successfully!')
-    }
-
-  } catch (err) {
-    console.error('Catch error:', err)
-    setError('🌐 Network Error: ' + err.message)
-    alert('Network Error: ' + err.message)
+    return true
   }
 
-  setLoading(false)
-}
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    if (!validateForm()) return
+
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError)
+        setError('🚨 Authentication error: ' + sessionError.message)
+        setLoading(false)
+        return
+      }
+
+      // ✅ PERFECT MAPPING - Based on your exact table structure
+      const insertData = {
+        // Required fields (NOT NULL)
+        name: formData.name.trim(),                    // ✅ name (NOT NULL)
+        request_type: formData.requestType || 'general', // ✅ request_type (NOT NULL)
+        
+        // Optional fields (NULL allowed)
+        message: formData.message.trim() || null,      // ✅ message (nullable)
+        email: formData.email.trim() || null,          // ✅ email (nullable)  
+        pdf_link: formData.pdfLink.trim() || null,     // ✅ pdf_link (nullable)
+        status: 'pending',                             // ✅ status (nullable)
+      }
+
+      // Add user_id if user is logged in
+      if (session?.user?.id) {
+        insertData.user_id = session.user.id          // ✅ user_id (nullable)
+      }
+
+      // Debug log (remove in production)
+      console.log('Inserting data:', insertData)
+      alert('Inserting: ' + JSON.stringify(insertData, null, 2))
+
+      const { data, error: insertError } = await supabase
+        .from('user_requests')
+        .insert([insertData])
+        .select()
+
+      console.log('Supabase response:', { data, error: insertError })
+
+      if (insertError) {
+        console.error('Insert error:', insertError)
+        
+        // Handle specific error codes
+        if (insertError.code === '23502') {
+          setError('❌ Required field missing: ' + insertError.message)
+        } else if (insertError.code === '42501') {
+          setError('🔒 Permission denied. Please make sure you are logged in.')
+        } else {
+          setError('❌ Database Error: ' + insertError.message)
+        }
+        
+        alert('Error: ' + JSON.stringify(insertError))
+        
+      } else {
+        console.log('Success:', data)
+        setSuccess('✅ Your request has been submitted successfully! We will review it and get back to you soon.')
+        
+        // Reset form
+        setFormData({
+          name: user?.user_metadata?.name || '',
+          email: user?.email || '',
+          message: '',
+          pdfLink: '',
+          requestType: 'general'
+        })
+        
+        alert('✅ Request submitted successfully!')
+      }
+
+    } catch (err) {
+      console.error('Catch error:', err)
+      setError('🌐 Network Error: ' + err.message + '. Please check your internet connection and try again.')
+      alert('Network Error: ' + err.message)
+    }
+
+    setLoading(false)
+  }
 
   return (
     <div className="p-2 md:p-6">
@@ -132,7 +142,7 @@ const UserRequestForm = ({ user }) => {
             Have a suggestion, feedback, or want to request a PDF? Let us know!
           </p>
 
-          {/* Error Display - Mobile Optimized */}
+          {/* Error Display */}
           {error && (
             <div className="mb-4 md:mb-6 p-3 md:p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-r-lg text-sm md:text-base">
               <div className="font-semibold">Error:</div>
@@ -140,7 +150,7 @@ const UserRequestForm = ({ user }) => {
             </div>
           )}
 
-          {/* Success Display - Mobile Optimized */}
+          {/* Success Display */}
           {success && (
             <div className="mb-4 md:mb-6 p-3 md:p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-r-lg text-sm md:text-base">
               <div className="font-semibold">Success!</div>
@@ -149,7 +159,7 @@ const UserRequestForm = ({ user }) => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-            {/* Full Name - Mobile Friendly */}
+            {/* Name Field - REQUIRED */}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Full Name <span className="text-red-500">*</span>
@@ -160,17 +170,17 @@ const UserRequestForm = ({ user }) => {
                 value={formData.name}
                 onChange={handleChange}
                 className="w-full p-3 md:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
-                style={{ fontSize: '16px' }} // Prevents zoom on iOS
+                style={{ fontSize: '16px' }}
                 placeholder="Enter your full name"
                 required
                 disabled={loading}
               />
             </div>
 
-            {/* Email - Mobile Friendly */}
+            {/* Email Field - OPTIONAL */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Email Address <span className="text-red-500">*</span>
+                Email Address <span className="text-gray-500">(Optional)</span>
               </label>
               <input
                 type="email"
@@ -180,12 +190,11 @@ const UserRequestForm = ({ user }) => {
                 className="w-full p-3 md:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
                 style={{ fontSize: '16px' }}
                 placeholder="Enter your email address"
-                required
                 disabled={loading}
               />
             </div>
 
-            {/* Request Type - Mobile Friendly */}
+            {/* Request Type - REQUIRED */}
             <div>
               <label className="block text-sm font-medium mb-2">
                 Request Type <span className="text-red-500">*</span>
@@ -196,6 +205,7 @@ const UserRequestForm = ({ user }) => {
                 onChange={handleChange}
                 className="w-full p-3 md:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
                 style={{ fontSize: '16px' }}
+                required
                 disabled={loading}
               >
                 <option value="general">General Inquiry</option>
@@ -207,10 +217,10 @@ const UserRequestForm = ({ user }) => {
               </select>
             </div>
 
-            {/* Message - Mobile Friendly */}
+            {/* Message Field - OPTIONAL */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Message <span className="text-red-500">*</span>
+                Message <span className="text-gray-500">(Optional)</span>
               </label>
               <textarea
                 name="message"
@@ -220,12 +230,11 @@ const UserRequestForm = ({ user }) => {
                 className="w-full p-3 md:p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
                 style={{ fontSize: '16px' }}
                 placeholder="Please describe your request in detail..."
-                required
                 disabled={loading}
               />
             </div>
 
-            {/* PDF Link - Mobile Friendly */}
+            {/* PDF Link Field - OPTIONAL */}
             <div>
               <label className="block text-sm font-medium mb-2">
                 PDF Link <span className="text-gray-500">(Optional)</span>
@@ -245,12 +254,12 @@ const UserRequestForm = ({ user }) => {
               </p>
             </div>
 
-            {/* Submit Button - Mobile Optimized */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-blue-600 text-white py-4 md:py-5 px-6 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-lg"
-              style={{ minHeight: '56px' }} // Large touch target
+              style={{ minHeight: '56px' }}
             >
               {loading ? (
                 <span className="flex items-center justify-center">
@@ -266,11 +275,12 @@ const UserRequestForm = ({ user }) => {
             </button>
           </form>
 
-          {/* Guidelines - Mobile Optimized */}
+          {/* Guidelines */}
           <div className="mt-6 md:mt-8 p-3 md:p-4 bg-gray-50 rounded-lg">
             <h4 className="font-semibold mb-2 text-sm md:text-base">📋 Guidelines:</h4>
             <ul className="text-xs md:text-sm text-gray-600 space-y-1">
-              <li>• Please be specific and clear in your message</li>
+              <li>• <strong>Name is required</strong> - please provide your full name</li>
+              <li>• Email is optional but recommended for responses</li>
               <li>• For PDF requests, mention the exam name and type</li>
               <li>• We typically respond within 24-48 hours</li>
               <li>• All resources shared will be made free for everyone</li>
