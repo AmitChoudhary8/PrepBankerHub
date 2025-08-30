@@ -17,10 +17,16 @@ const ExamCalendar = () => {
         .select('*')
         .order('exam_date', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching events:', error)
+        throw error
+      }
+      
+      console.log('Fetched events:', data) // Debug log
       setEvents(data || [])
     } catch (error) {
       console.error('Error fetching exam events:', error)
+      setEvents([])
     }
     setLoading(false)
   }
@@ -206,7 +212,7 @@ const ExamCalendar = () => {
                   </div>
                 </div>
                 
-                {/* Additional Info Bar - Mobile Optimized */}
+                {/* Additional Info Bar */}
                 {(event.total_posts || event.age_limit || event.qualification) && (
                   <div className="mt-4 pt-3 border-t border-gray-100">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-gray-600">
