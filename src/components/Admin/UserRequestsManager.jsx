@@ -82,9 +82,9 @@ const UserRequestsManager = ({ onUpdate }) => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white rounded-lg shadow-lg p-4 md:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6">
-          <h2 className="text-xl font-bold mb-4 sm:mb-0">📝 User Requests Management</h2>
+          <h2 className="text-lg md:text-xl font-bold mb-4 sm:mb-0">📝 User Requests Management</h2>
           
           {/* Filter Buttons */}
           <div className="flex flex-wrap gap-2">
@@ -92,7 +92,7 @@ const UserRequestsManager = ({ onUpdate }) => {
               <button
                 key={status}
                 onClick={() => setFilter(status)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                   filter === status
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
