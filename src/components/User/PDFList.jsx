@@ -35,8 +35,8 @@ const PDFList = () => {
   })
 
   const handleDownload = (pdf) => {
-    if (pdf.download_url) {
-      window.open(pdf.download_url, '_blank')
+    if (pdf.direct_download_url) {
+      window.open(pdf.direct_download_url, '_blank')
     } else {
       alert('Download link not available for this PDF')
     }
