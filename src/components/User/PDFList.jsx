@@ -34,21 +34,26 @@ const PDFList = () => {
     return matchesSearch && matchesCategory
   })
 
-  const handleDownload = (pdf) => {
-    if (pdf.direct_download_url) {
-      window.open(pdf.direct_download_url, '_blank')
-    } else {
-      alert('Download link not available for this PDF')
-    }
+const handleDownload = (pdf) => {
+  // Debug के लिए console में check करें
+  console.log('PDF Object:', pdf);
+  console.log('Direct Download URL:', pdf.direct_download_url);
+  
+  if (pdf.direct_download_url) {  // ✅ Correct field name
+    window.open(pdf.direct_download_url, '_blank')
+  } else {
+    alert('Download link not available for this PDF')
   }
+}
 
-  const handlePreview = (pdf) => {
-    if (pdf.preview_url || pdf.download_url) {
-      window.open(pdf.preview_url || pdf.download_url, '_blank')
-    } else {
-      alert('Preview not available for this PDF')
-    }
+const handlePreview = (pdf) => {
+  // Preview के लिए भी same field use करें
+  if (pdf.preview_url || pdf.direct_download_url) {  // ✅ Fixed field name
+    window.open(pdf.preview_url || pdf.direct_download_url, '_blank')
+  } else {
+    alert('Preview not available for this PDF')
   }
+}
 
   if (loading) {
     return (
