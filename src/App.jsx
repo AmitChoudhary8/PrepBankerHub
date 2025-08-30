@@ -9,6 +9,7 @@ import QuizPlayer from './components/User/QuizPlayer'
 import PDFList from './components/User/PDFList'
 import ExamCalendar from './components/User/ExamCalendar'
 import UserRequestForm from './components/User/UserRequestForm'
+import Footer from './components/Footer'
 import './App.css'
 
 function App() {
@@ -81,19 +82,25 @@ function App() {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      {/* Mobile-Optimized Header */}
-      <header className="bg-blue-600 text-white p-3 md:p-4 shadow-lg">
-        <div className="flex justify-between items-center max-w-6xl mx-auto">
-          {/* Logo Section - Mobile Responsive */}
-          <div className="flex items-center space-x-1 md:space-x-2">
+      {/* Mobile-Optimized Header with Logo */}
+      <header className="bg-blue-600 text-white p-2 md:p-3 shadow-lg">
+        <div className="flex justify-between items-center max-w-7xl mx-auto">
+          {/* Logo Section - Full Width Logo */}
+          <div className="flex-1 flex items-center justify-start">
             <button 
               onClick={resetToHome}
-              className="text-lg md:text-2xl font-bold hover:text-blue-200 transition-colors"
+              className="hover:opacity-80 transition-opacity"
             >
-              <span className="hidden sm:inline">PrepBankerHub</span>
-              <span className="sm:hidden">PBH</span>
+              <img 
+                src="/assets/logo.png" 
+                alt="PrepBankerHub Logo" 
+                className="h-10 md:h-14 w-auto object-contain max-w-full"
+                style={{ 
+                  maxHeight: '56px', // Prevents logo from being too large
+                  maxWidth: '300px'   // Responsive max width
+                }}
+              />
             </button>
-            <span className="text-blue-200 text-lg md:text-xl">🏦</span>
           </div>
           
           {/* Mobile-Optimized Controls */}
@@ -101,8 +108,8 @@ function App() {
             {/* Dark Mode Toggle - Compact on mobile */}
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="bg-blue-700 hover:bg-blue-800 px-2 md:px-4 py-1 md:py-2 rounded-lg transition-colors text-sm"
-              style={{ minHeight: '44px' }} // iOS touch target
+              className="bg-blue-700 hover:bg-blue-800 px-2 md:px-4 py-2 rounded-lg transition-colors text-sm"
+              style={{ minHeight: '44px' }}
             >
               <span className="md:hidden">{darkMode ? '☀️' : '🌙'}</span>
               <span className="hidden md:inline">{darkMode ? '☀️ Light' : '🌙 Dark'}</span>
@@ -397,12 +404,8 @@ function App() {
         )}
       </main>
 
-      {/* Footer - Mobile Friendly */}
-      <footer className="bg-gray-800 text-white p-3 md:p-4 mt-8 md:mt-12">
-        <div className="text-center">
-          <p className="text-sm md:text-base">&copy; 2025 PrepBankerHub. All resources are completely free!</p>
-        </div>
-      </footer>
+      {/* Footer with Social Media Links */}
+      <Footer />
 
       {/* Modals */}
       {showLogin && (
