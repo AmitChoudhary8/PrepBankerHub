@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../utils/supabase'
+import ShareButton from '../ShareButton'
 
 const QuizList = ({ onStartQuiz }) => {
   const [quizzes, setQuizzes] = useState([])
@@ -116,15 +117,22 @@ const QuizList = ({ onStartQuiz }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {filteredQuizzes.map((quiz) => (
             <div key={quiz.id} className="bg-white p-4 md:p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
-              {/* Quiz Header */}
+              {/* Quiz Header with Share Button */}
               <div className="mb-4">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="text-lg md:text-xl font-bold text-gray-800 line-clamp-2 flex-1 pr-2">
                     {quiz.title}
                   </h3>
-                  <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0">
-                    {quiz.category}
-                  </span>
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <ShareButton 
+                      itemType="quiz" 
+                      itemId={quiz.id} 
+                      itemTitle={quiz.title}
+                    />
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-lg text-xs font-medium">
+                      {quiz.category}
+                    </span>
+                  </div>
                 </div>
                 
                 <p className="text-sm md:text-base text-gray-600 line-clamp-3 mb-3">
