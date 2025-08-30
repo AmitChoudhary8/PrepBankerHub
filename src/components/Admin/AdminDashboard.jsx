@@ -1,287 +1,345 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../utils/supabase'
-import UserRequestsManager from './UserRequestsManager'
-import ExamCalendarManager from './ExamCalendarManager'  
-import UserDataManager from './UserDataManager'
 import QuizManager from './QuizManager'
 import PDFManager from './PDFManager'
+import UserManager from './UserManager'
+import ExamCalendarManager from './ExamCalendarManager'
 
 const AdminDashboard = ({ onLogout }) => {
-  const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeTab, setActiveTab] = useState('overview')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [stats, setStats] = useState({
-    users: 0,
-    quizzes: 0,
-    pdfs: 0,
-    requests: 0,
+    totalUsers: 0,
+    totalQuizzes: 0,
+    totalPDFs: 0,
+    totalExams: 0,
     pendingRequests: 0
   })
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchStats()
-    const interval = setInterval(fetchStats, 30000) // Refresh every 30 seconds
-    return () => clearInterval(interval)
   }, [])
 
   const fetchStats = async () => {
     try {
-      // Get real user count from auth.users
-      const { data: authUsers } = await supabase.auth.admin.listUsers()
+      // Get user count from users table (synced with auth.users)
+      const { count: userCount } = await supabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
       
-      // Get other counts
-      const [quizzes, pdfs, requests, pendingRequests] = await Promise.all([
-        supabase.from('quizzes').select('id', { count: 'exact', head: true }),
-        supabase.from('pdfs').select('id', { count: 'exact', head: true }),
-        supabase.from('user_requests').select('id', { count: 'exact', head: true }),
-        supabase.from('user_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending')
-      ])
-
+      const { data: quizzes } = await supabase.from('quizzes').select('id')
+      const { data: pdfs } = await supabase.from('pdfs').select('id')
+      const { data: exams } = await supabase.from('exam_calendar').select('id')
+      const { data: requests } = await supabase
+        .from('user_requests')
+        .select('id')
+        .eq('status', 'pending')
+      
       setStats({
-        users: authUsers?.users?.length || 0,
-        quizzes: quizzes.count || 0,
-        pdfs: pdfs.count || 0,
-        requests: requests.count || 0,
-        pendingRequests: pendingRequests.count || 0
+        totalUsers: userCount || 0,
+        totalQuizzes: quizzes?.length || 0,
+        totalPDFs: pdfs?.length || 0,
+        totalExams: exams?.length || 0,
+        pendingRequests: requests?.length || 0
       })
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      console.log('Error fetching stats:', error)
+      setStats({
+        totalUsers: 0,
+        totalQuizzes: 0,
+        totalPDFs: 0,
+        totalExams: 0,
+        pendingRequests: 0
+      })
     }
-    setLoading(false)
   }
 
-  const StatCard = ({ title, count, icon, color, description }) => (
-    <div className={`bg-white rounded-lg shadow-lg p-4 md:p-6 border-l-4 ${color} hover:shadow-xl transition-shadow`}>
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <p className="text-sm md:text-base text-gray-600 font-medium">{title}</p>
-          <p className="text-2xl md:text-3xl font-bold text-gray-800">
-            {loading ? '...' : count.toLocaleString()}
-          </p>
-        </div>
-        <div className="text-3xl md:text-4xl">{icon}</div>
-      </div>
-      {description && (
-        <p className="text-xs text-gray-500 mt-1">{description}</p>
-      )}
-    </div>
-  )
+  const closeSidebar = () => {
+    setSidebarOpen(false)
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-3 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <header className="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-            <div className="mb-4 sm:mb-0">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">🔐 Admin Dashboard</h1>
-              <p className="text-sm md:text-base text-gray-600 mt-1">
-                Manage PrepBankerHub Platform
-              </p>
-            </div>
+    <div className="min-h-screen bg-gray-100">
+      {/* Mobile-Optimized Admin Header */}
+      <header className="bg-red-600 text-white p-3 md:p-4 shadow-lg">
+        <div className="flex justify-between items-center max-w-7xl mx-auto">
+          <div className="flex items-center space-x-2">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="md:hidden bg-red-700 hover:bg-red-800 p-2 rounded-lg transition-colors"
+              style={{ minHeight: '44px', minWidth: '44px' }}
+            >
+              <span className="text-lg">☰</span>
+            </button>
             
-            <div className="flex space-x-2">
+            <div>
+              <h1 className="text-lg md:text-2xl font-bold">
+                <span className="hidden sm:inline">PrepBankerHub Admin Panel</span>
+                <span className="sm:hidden">PBH Admin</span>
+              </h1>
+            </div>
+            <span className="text-red-200 text-lg">👨‍💼</span>
+          </div>
+          
+          <button
+            onClick={onLogout}
+            className="bg-red-700 hover:bg-red-800 px-3 md:px-4 py-2 rounded-lg transition-colors text-sm md:text-base"
+            style={{ minHeight: '44px' }}
+          >
+            <span className="hidden sm:inline">Logout</span>
+            <span className="sm:hidden">Exit</span>
+          </button>
+        </div>
+      </header>
+
+      <div className="flex max-w-7xl mx-auto relative">
+        {/* Mobile Overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+            onClick={closeSidebar}
+          ></div>
+        )}
+
+        {/* Mobile-Responsive Sidebar */}
+        <aside className={`
+          fixed md:relative
+          w-64 bg-white shadow-lg min-h-screen z-30
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:translate-x-0
+        `}>
+          <nav className="p-3 md:p-4">
+            {/* Mobile Close Button */}
+            <div className="flex justify-end mb-4 md:hidden">
               <button
-                onClick={fetchStats}
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                style={{ minHeight: '40px' }}
+                onClick={closeSidebar}
+                className="text-gray-500 hover:text-gray-700 p-2"
+                style={{ minHeight: '44px', minWidth: '44px' }}
               >
-                {loading ? '⏳' : '🔄'} Refresh
-              </button>
-              <button
-                onClick={onLogout}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{ minHeight: '40px' }}
-              >
-                🚪 Logout
+                ✕
               </button>
             </div>
-          </div>
-        </header>
 
-        {/* Navigation Tabs */}
-        <nav className="bg-white rounded-lg shadow-lg p-2 mb-6">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'dashboard' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              📊 Dashboard
-            </button>
-            <button
-              onClick={() => setActiveTab('user-requests')}
-              className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors relative ${
-                activeTab === 'user-requests' 
-                  ? 'bg-orange-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              📝 User Requests
-              {stats.pendingRequests > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {stats.pendingRequests}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('exam-calendar')}
-              className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'exam-calendar' 
-                  ? 'bg-purple-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              📅 Exam Calendar
-            </button>
-            <button
-              onClick={() => setActiveTab('quiz-manager')}
-              className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'quiz-manager' 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              📚 Quiz Manager
-            </button>
-            <button
-              onClick={() => setActiveTab('pdf-manager')}
-              className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'pdf-manager' 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              📄 PDF Manager
-            </button>
-            <button
-              onClick={() => setActiveTab('user-data')}
-              className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'user-data' 
-                  ? 'bg-cyan-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              👥 User Data
-            </button>
-          </div>
-        </nav>
+            <ul className="space-y-2">
+              <li>
+                <button
+                  onClick={() => {
+                    setActiveTab('overview')
+                    closeSidebar()
+                  }}
+                  className={`w-full text-left p-3 rounded-lg text-sm md:text-base transition-colors ${
+                    activeTab === 'overview' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
+                  }`}
+                  style={{ minHeight: '44px' }}
+                >
+                  📊 Dashboard Overview
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    setActiveTab('quiz-management')
+                    closeSidebar()
+                  }}
+                  className={`w-full text-left p-3 rounded-lg text-sm md:text-base transition-colors ${
+                    activeTab === 'quiz-management' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
+                  }`}
+                  style={{ minHeight: '44px' }}
+                >
+                  📚 Quiz Management
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    setActiveTab('pdf-management')
+                    closeSidebar()
+                  }}
+                  className={`w-full text-left p-3 rounded-lg text-sm md:text-base transition-colors ${
+                    activeTab === 'pdf-management' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
+                  }`}
+                  style={{ minHeight: '44px' }}
+                >
+                  📄 PDF Management
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    setActiveTab('user-management')
+                    closeSidebar()
+                  }}
+                  className={`w-full text-left p-3 rounded-lg text-sm md:text-base transition-colors ${
+                    activeTab === 'user-management' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
+                  }`}
+                  style={{ minHeight: '44px' }}
+                >
+                  👥 User Management
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    setActiveTab('exam-calendar')
+                    closeSidebar()
+                  }}
+                  className={`w-full text-left p-3 rounded-lg text-sm md:text-base transition-colors ${
+                    activeTab === 'exam-calendar' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
+                  }`}
+                  style={{ minHeight: '44px' }}
+                >
+                  📅 Exam Calendar
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    setActiveTab('requests')
+                    closeSidebar()
+                  }}
+                  className={`w-full text-left p-3 rounded-lg text-sm md:text-base transition-colors ${
+                    activeTab === 'requests' ? 'bg-red-100 text-red-700' : 'hover:bg-gray-100'
+                  }`}
+                  style={{ minHeight: '44px' }}
+                >
+                  📝 User Requests
+                  {stats.pendingRequests > 0 && (
+                    <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                      {stats.pendingRequests}
+                    </span>
+                  )}
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </aside>
 
-        {/* Tab Content */}
-        <div>
-          {activeTab === 'dashboard' && (
-            <section>
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-                <StatCard
-                  title="Total Users"
-                  count={stats.users}
-                  icon="👥"
-                  color="border-blue-500"
-                  description="Registered users"
-                />
-                <StatCard
-                  title="Active Quizzes"
-                  count={stats.quizzes}
-                  icon="📚"
-                  color="border-green-500"
-                  description="Available quizzes"
-                />
-                <StatCard
-                  title="PDF Resources"
-                  count={stats.pdfs}
-                  icon="📄"
-                  color="border-purple-500"
-                  description="Study materials"
-                />
-                <StatCard
-                  title="User Requests"
-                  count={stats.requests}
-                  icon="📝"
-                  color="border-orange-500"
-                  description={`${stats.pendingRequests} pending`}
-                />
+        {/* Mobile-Responsive Main Content */}
+        <main className="flex-1 p-3 md:p-6">
+          {activeTab === 'overview' && (
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Dashboard Overview</h2>
+              
+              {/* Mobile-Responsive Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+                <div className="bg-white p-4 md:p-6 rounded-lg shadow">
+                  <h3 className="text-sm md:text-lg font-semibold text-gray-600">Total Users</h3>
+                  <p className="text-2xl md:text-3xl font-bold text-blue-600">{stats.totalUsers}</p>
+                </div>
+                <div className="bg-white p-4 md:p-6 rounded-lg shadow">
+                  <h3 className="text-sm md:text-lg font-semibold text-gray-600">Total Quizzes</h3>
+                  <p className="text-2xl md:text-3xl font-bold text-green-600">{stats.totalQuizzes}</p>
+                </div>
+                <div className="bg-white p-4 md:p-6 rounded-lg shadow">
+                  <h3 className="text-sm md:text-lg font-semibold text-gray-600">Total PDFs</h3>
+                  <p className="text-2xl md:text-3xl font-bold text-purple-600">{stats.totalPDFs}</p>
+                </div>
+                <div className="bg-white p-4 md:p-6 rounded-lg shadow">
+                  <h3 className="text-sm md:text-lg font-semibold text-gray-600">Exam Events</h3>
+                  <p className="text-2xl md:text-3xl font-bold text-indigo-600">{stats.totalExams}</p>
+                </div>
               </div>
 
-              {/* Quick Actions */}
-              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h3 className="text-lg font-bold mb-4">⚡ Quick Actions</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Mobile-Responsive Quick Actions */}
+              <div className="bg-white p-4 md:p-6 rounded-lg shadow mb-6">
+                <h3 className="text-lg md:text-xl font-bold mb-4">Quick Actions</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                   <button
-                    onClick={() => setActiveTab('user-requests')}
-                    className="p-4 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors text-left"
+                    onClick={() => setActiveTab('quiz-management')}
+                    className="bg-blue-600 text-white p-3 md:p-4 rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base"
+                    style={{ minHeight: '44px' }}
                   >
-                    <div className="text-2xl mb-2">📝</div>
-                    <h4 className="font-semibold text-orange-800">User Requests</h4>
-                    <p className="text-sm text-orange-600">{stats.pendingRequests} pending</p>
+                    ➕ Add New Quiz
                   </button>
-                  
+                  <button
+                    onClick={() => setActiveTab('pdf-management')}
+                    className="bg-green-600 text-white p-3 md:p-4 rounded-lg hover:bg-green-700 transition-colors text-sm md:text-base"
+                    style={{ minHeight: '44px' }}
+                  >
+                    📄 Add New PDF
+                  </button>
                   <button
                     onClick={() => setActiveTab('exam-calendar')}
-                    className="p-4 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors text-left"
+                    className="bg-indigo-600 text-white p-3 md:p-4 rounded-lg hover:bg-indigo-700 transition-colors text-sm md:text-base"
+                    style={{ minHeight: '44px' }}
                   >
-                    <div className="text-2xl mb-2">📅</div>
-                    <h4 className="font-semibold text-purple-800">Exam Calendar</h4>
-                    <p className="text-sm text-purple-600">Manage exam dates</p>
+                    📅 Add Exam Event
                   </button>
-                  
                   <button
-                    onClick={() => setActiveTab('quiz-manager')}
-                    className="p-4 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors text-left"
+                    onClick={() => setActiveTab('user-management')}
+                    className="bg-purple-600 text-white p-3 md:p-4 rounded-lg hover:bg-purple-700 transition-colors text-sm md:text-base"
+                    style={{ minHeight: '44px' }}
                   >
-                    <div className="text-2xl mb-2">📚</div>
-                    <h4 className="font-semibold text-green-800">Quiz Manager</h4>
-                    <p className="text-sm text-green-600">Add/Edit quizzes</p>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('pdf-manager')}
-                    className="p-4 bg-indigo-50 rounded-lg border border-indigo-200 hover:bg-indigo-100 transition-colors text-left"
-                  >
-                    <div className="text-2xl mb-2">📄</div>
-                    <h4 className="font-semibold text-indigo-800">PDF Manager</h4>
-                    <p className="text-sm text-indigo-600">Upload/Manage PDFs</p>
+                    👥 Manage Users
                   </button>
                 </div>
               </div>
 
-              {/* Recent Activity */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h3 className="text-lg font-bold mb-4">📈 Recent Activity</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 text-sm">👤</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">New user registered</p>
-                      <p className="text-xs text-gray-500">2 minutes ago</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                      <span className="text-orange-600 text-sm">📝</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">New request submitted</p>
-                      <p className="text-xs text-gray-500">5 minutes ago</p>
-                    </div>
-                  </div>
+              {/* Mobile-Responsive Recent Activity */}
+              <div className="bg-white p-4 md:p-6 rounded-lg shadow">
+                <h3 className="text-lg md:text-xl font-bold mb-4">Recent Activity</h3>
+                <div className="space-y-2 md:space-y-3 text-xs md:text-sm text-gray-600">
+                  <p>• Database successfully initialized with sample data</p>
+                  <p>• {stats.totalQuizzes} quiz(es) available for users</p>
+                  <p>• {stats.totalPDFs} PDF(s) ready for download</p>
+                  <p>• {stats.totalUsers} user(s) registered on platform</p>
+                  <p>• {stats.totalExams} exam event(s) scheduled</p>
+                  <p>• Admin panel fully operational</p>
                 </div>
               </div>
-            </section>
+            </div>
           )}
 
-          {activeTab === 'user-requests' && <UserRequestsManager onStatsUpdate={fetchStats} />}
+          {/* Quiz Management Tab */}
+          {activeTab === 'quiz-management' && <QuizManager />}
+
+          {/* PDF Management Tab */}
+          {activeTab === 'pdf-management' && <PDFManager />}
+
+          {/* User Management Tab */}
+          {activeTab === 'user-management' && <UserManager />}
+
+          {/* Exam Calendar Tab */}
           {activeTab === 'exam-calendar' && <ExamCalendarManager />}
-          {activeTab === 'quiz-manager' && <QuizManager />}
-          {activeTab === 'pdf-manager' && <PDFManager />}
-          {activeTab === 'user-data' && <UserDataManager />}
-        </div>
+
+          {/* User Requests Tab */}
+          {activeTab === 'requests' && (
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">User Requests & Submissions</h2>
+              <div className="bg-white p-4 md:p-6 rounded-lg shadow">
+                <h3 className="text-lg md:text-xl font-bold mb-4">Pending Requests</h3>
+                <div className="text-gray-600">
+                  <p className="mb-4 text-sm md:text-base">Request management functionality coming soon...</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div>
+                      <h4 className="font-semibold mb-2 text-sm md:text-base">Request Types:</h4>
+                      <ul className="space-y-1 text-xs md:text-sm">
+                        <li>• PDF upload requests</li>
+                        <li>• Quiz suggestions</li>
+                        <li>• Content feedback</li>
+                        <li>• Feature requests</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2 text-sm md:text-base">Management Features:</h4>
+                      <ul className="space-y-1 text-xs md:text-sm">
+                        <li>• Approve/Reject submissions</li>
+                        <li>• Send response messages</li>
+                        <li>• Priority handling</li>
+                        <li>• Status tracking</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile Bottom Spacing */}
+          <div className="h-16 md:h-0"></div>
+        </main>
       </div>
     </div>
   )
