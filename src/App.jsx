@@ -501,10 +501,6 @@ function App() {
 
 <Footer />
 
-
-      {/* Footer with Social Media Links */}
-      <Footer />
-
       {/* Modals */}
       {showLogin && (
         <LoginModal
