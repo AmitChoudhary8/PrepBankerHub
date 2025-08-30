@@ -20,7 +20,6 @@ const UserRequestForm = ({ user }) => {
   }
 
   const validateForm = () => {
-    // name is required (NOT NULL constraint)
     if (!formData.name || !formData.name.trim()) {
       setError('❌ Name is required and cannot be empty')
       return false
@@ -31,7 +30,6 @@ const UserRequestForm = ({ user }) => {
       return false
     }
 
-    // Basic email validation if provided
     if (formData.email && formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(formData.email.trim())) {
@@ -56,60 +54,41 @@ const UserRequestForm = ({ user }) => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError) {
-        console.error('Session error:', sessionError)
-        setError('🚨 Authentication error: ' + sessionError.message)
+        setError('🚨 Authentication error. Please login again.')
         setLoading(false)
         return
       }
 
-      // ✅ PERFECT MAPPING - Based on your exact table structure
       const insertData = {
-        // Required fields (NOT NULL)
-        name: formData.name.trim(),                    // ✅ name (NOT NULL)
-        request_type: formData.requestType || 'general', // ✅ request_type (NOT NULL)
-        
-        // Optional fields (NULL allowed)
-        message: formData.message.trim() || null,      // ✅ message (nullable)
-        email: formData.email.trim() || null,          // ✅ email (nullable)  
-        pdf_link: formData.pdfLink.trim() || null,     // ✅ pdf_link (nullable)
-        status: 'pending',                             // ✅ status (nullable)
+        name: formData.name.trim(),
+        request_type: formData.requestType || 'general',
+        message: formData.message.trim() || null,
+        email: formData.email.trim() || null,
+        pdf_link: formData.pdfLink.trim() || null,
+        status: 'pending',
       }
 
-      // Add user_id if user is logged in
       if (session?.user?.id) {
-        insertData.user_id = session.user.id          // ✅ user_id (nullable)
+        insertData.user_id = session.user.id
       }
-
-      // Debug log (remove in production)
-      console.log('Inserting data:', insertData)
-      alert('Inserting: ' + JSON.stringify(insertData, null, 2))
 
       const { data, error: insertError } = await supabase
         .from('user_requests')
         .insert([insertData])
         .select()
 
-      console.log('Supabase response:', { data, error: insertError })
-
       if (insertError) {
-        console.error('Insert error:', insertError)
-        
-        // Handle specific error codes
         if (insertError.code === '23502') {
-          setError('❌ Required field missing: ' + insertError.message)
+          setError('❌ Required field is missing. Please fill all mandatory fields.')
         } else if (insertError.code === '42501') {
           setError('🔒 Permission denied. Please make sure you are logged in.')
         } else {
-          setError('❌ Database Error: ' + insertError.message)
+          setError('❌ Something went wrong. Please try again later.')
         }
-        
-        alert('Error: ' + JSON.stringify(insertError))
-        
       } else {
-        console.log('Success:', data)
         setSuccess('✅ Your request has been submitted successfully! We will review it and get back to you soon.')
         
-        // Reset form
+        // Reset form after successful submission
         setFormData({
           name: user?.user_metadata?.name || '',
           email: user?.email || '',
@@ -117,14 +96,13 @@ const UserRequestForm = ({ user }) => {
           pdfLink: '',
           requestType: 'general'
         })
-        
-        alert('✅ Request submitted successfully!')
+
+        // Scroll to top to show success message
+        window.scrollTo({ top: 0, behavior: 'smooth' })
       }
 
     } catch (err) {
-      console.error('Catch error:', err)
-      setError('🌐 Network Error: ' + err.message + '. Please check your internet connection and try again.')
-      alert('Network Error: ' + err.message)
+      setError('🌐 Network error. Please check your internet connection and try again.')
     }
 
     setLoading(false)
