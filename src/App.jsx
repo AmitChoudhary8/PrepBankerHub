@@ -494,6 +494,14 @@ function App() {
         )}
       </main>
 
+{/* Founder Message - Add this just above <Footer /> */}
+<div className="bg-blue-600 text-white text-center py-2 font-semibold">
+  Founder - Amit Choudhary
+</div>
+
+<Footer />
+
+
       {/* Footer with Social Media Links */}
       <Footer />
 
