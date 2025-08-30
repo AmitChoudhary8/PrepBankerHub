@@ -1,231 +1,243 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../utils/supabase'
 
-const UserRequestManager = () => {
+const UserRequestsManager = ({ onUpdate }) => {
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filterStatus, setFilterStatus] = useState('all')
+  const [filter, setFilter] = useState('all')
+  const [selectedRequest, setSelectedRequest] = useState(null)
+  const [responseText, setResponseText] = useState('')
 
   useEffect(() => {
     fetchRequests()
-  }, [filterStatus])
+  }, [])
 
   const fetchRequests = async () => {
-    setLoading(true)
-    
-    let query = supabase.from('user_requests').select('*')
-    
-    if (filterStatus !== 'all') {
-      query = query.eq('status', filterStatus)
-    }
-    
-    const { data, error } = await query.order('created_at', { ascending: false })
-    
-    if (error) {
-      console.error('Error fetching requests:', error)
-    } else {
+    try {
+      const { data, error } = await supabase
+        .from('user_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
       setRequests(data || [])
+      onUpdate && onUpdate()
+    } catch (error) {
+      console.error('Error fetching requests:', error)
     }
     setLoading(false)
   }
 
-  const updateRequestStatus = async (requestId, newStatus, adminResponse = '') => {
-    const { error } = await supabase
-      .from('user_requests')
-      .update({ 
-        status: newStatus, 
-        admin_response: adminResponse || null,
+  const updateRequestStatus = async (requestId, newStatus, adminResponse = null) => {
+    try {
+      const updateData = { 
+        status: newStatus,
         updated_at: new Date()
-      })
-      .eq('id', requestId)
-    
-    if (error) {
-      alert('Error updating request status')
-    } else {
-      alert(`Request ${newStatus} successfully!`)
-      fetchRequests()
-    }
-  }
+      }
+      
+      if (adminResponse) {
+        updateData.admin_response = adminResponse
+      }
 
-  const deleteRequest = async (requestId) => {
-    if (window.confirm('Are you sure you want to delete this request?')) {
       const { error } = await supabase
         .from('user_requests')
-        .delete()
+        .update(updateData)
         .eq('id', requestId)
+
+      if (error) throw error
       
-      if (error) {
-        alert('Error deleting request')
-      } else {
-        alert('Request deleted successfully!')
-        fetchRequests()
-      }
+      alert(`✅ Request ${newStatus} successfully!`)
+      fetchRequests()
+      setSelectedRequest(null)
+      setResponseText('')
+    } catch (error) {
+      console.error('Error updating request:', error)
+      alert('❌ Failed to update request')
     }
   }
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const filteredRequests = requests.filter(request => {
+    if (filter === 'all') return true
+    return request.status === filter
+  })
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800'
       case 'approved': return 'bg-green-100 text-green-800'
       case 'rejected': return 'bg-red-100 text-red-800'
-      case 'in_review': return 'bg-blue-100 text-blue-800'
+      case 'resolved': return 'bg-blue-100 text-blue-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
 
+  if (loading) {
+    return (
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-xl font-bold mb-4">📝 User Requests Management</h2>
+        <div className="text-center py-8">Loading requests...</div>
+      </div>
+    )
+  }
+
   return (
-    <div>
-      {/* Filter Controls */}
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="p-2 border rounded-lg"
-          >
-            <option value="all">All Requests</option>
-            <option value="pending">Pending</option>
-            <option value="in_review">In Review</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6">
+          <h2 className="text-xl font-bold mb-4 sm:mb-0">📝 User Requests Management</h2>
+          
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+            {['all', 'pending', 'approved', 'rejected', 'resolved'].map(status => (
+              <button
+                key={status}
+                onClick={() => setFilter(status)}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                  filter === status
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                style={{ minHeight: '36px' }}
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+                {status === 'pending' && (
+                  <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-1">
+                    {requests.filter(r => r.status === 'pending').length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="text-sm text-gray-600">
-          Total Requests: {requests.length}
+
+        {/* Requests List */}
+        <div className="space-y-4">
+          {filteredRequests.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-2">📝</div>
+              <p className="text-gray-600">No requests found for "{filter}" status</p>
+            </div>
+          ) : (
+            filteredRequests.map(request => (
+              <div key={request.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start space-y-3 lg:space-y-0">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <h3 className="font-semibold text-lg">{request.name}</h3>
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(request.status)}`}>
+                        {request.status}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <p><strong>Email:</strong> {request.email || 'Not provided'}</p>
+                      <p><strong>Type:</strong> {request.request_type}</p>
+                      <p><strong>Date:</strong> {new Date(request.created_at).toLocaleDateString()}</p>
+                      {request.message && (
+                        <p><strong>Message:</strong> {request.message}</p>
+                      )}
+                      {request.pdf_link && (
+                        <p><strong>PDF Link:</strong> 
+                          <a href={request.pdf_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
+                            {request.pdf_link}
+                          </a>
+                        </p>
+                      )}
+                      {request.admin_response && (
+                        <div className="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-500">
+                          <p><strong>Admin Response:</strong> {request.admin_response}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col space-y-2 lg:ml-4">
+                    <button
+                      onClick={() => setSelectedRequest(request)}
+                      className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700"
+                      style={{ minHeight: '36px' }}
+                    >
+                      ✏️ Respond
+                    </button>
+                    
+                    {request.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => updateRequestStatus(request.id, 'approved')}
+                          className="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700"
+                          style={{ minHeight: '36px' }}
+                        >
+                          ✅ Approve
+                        </button>
+                        <button
+                          onClick={() => updateRequestStatus(request.id, 'rejected')}
+                          className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700"
+                          style={{ minHeight: '36px' }}
+                        >
+                          ❌ Reject
+                        </button>
+                      </>
+                    )}
+                    
+                    <button
+                      onClick={() => updateRequestStatus(request.id, 'resolved')}
+                      className="bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700"
+                      style={{ minHeight: '36px' }}
+                    >
+                      ✔️ Resolve
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Requests List */}
-      {loading ? (
-        <div className="text-center p-8">Loading requests...</div>
-      ) : requests.length === 0 ? (
-        <div className="bg-white p-8 rounded-lg shadow text-center">
-          <p className="text-gray-500">No requests found.</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {requests.map(request => (
-            <div key={request.id} className="bg-white p-6 rounded-lg shadow-lg">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-bold">{request.name}</h3>
-                  <p className="text-gray-600">{request.email}</p>
-                  <p className="text-sm text-gray-500">
-                    {formatDate(request.created_at)}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(request.status)}`}>
-                    {request.status.replace('_', ' ').toUpperCase()}
-                  </span>
-                  <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
-                    {request.request_type}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <h4 className="font-semibold mb-2">Message:</h4>
-                <p className="text-gray-700 bg-gray-50 p-3 rounded">{request.message}</p>
-              </div>
-
-              {request.pdf_link && (
-                <div className="mb-4">
-                  <h4 className="font-semibold mb-2">PDF Link:</h4>
-                  <a 
-                    href={request.pdf_link} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 underline"
-                  >
-                    {request.pdf_link}
-                  </a>
-                </div>
-              )}
-
-              {request.admin_response && (
-                <div className="mb-4">
-                  <h4 className="font-semibold mb-2">Admin Response:</h4>
-                  <p className="text-gray-700 bg-blue-50 p-3 rounded">{request.admin_response}</p>
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                {request.status === 'pending' && (
-                  <>
-                    <button
-                      onClick={() => updateRequestStatus(request.id, 'in_review')}
-                      className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
-                    >
-                      Mark as In Review
-                    </button>
-                    <button
-                      onClick={() => {
-                        const response = prompt('Enter response (optional):')
-                        updateRequestStatus(request.id, 'approved', response)
-                      }}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => {
-                        const response = prompt('Enter rejection reason:')
-                        if (response) updateRequestStatus(request.id, 'rejected', response)
-                      }}
-                      className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
-                
-                {request.status === 'in_review' && (
-                  <>
-                    <button
-                      onClick={() => {
-                        const response = prompt('Enter response (optional):')
-                        updateRequestStatus(request.id, 'approved', response)
-                      }}
-                      className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => {
-                        const response = prompt('Enter rejection reason:')
-                        if (response) updateRequestStatus(request.id, 'rejected', response)
-                      }}
-                      className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
-
-                <button
-                  onClick={() => deleteRequest(request.id)}
-                  className="bg-gray-600 text-white px-3 py-1 rounded text-sm hover:bg-gray-700"
-                >
-                  🗑️ Delete
-                </button>
-              </div>
+      {/* Response Modal */}
+      {selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-96 overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4">📝 Respond to Request</h3>
+            
+            <div className="mb-4 p-3 bg-gray-50 rounded">
+              <p><strong>From:</strong> {selectedRequest.name}</p>
+              <p><strong>Message:</strong> {selectedRequest.message}</p>
             </div>
-          ))}
+            
+            <textarea
+              value={responseText}
+              onChange={(e) => setResponseText(e.target.value)}
+              placeholder="Enter your response..."
+              className="w-full p-3 border rounded-lg h-32 resize-none"
+              style={{ fontSize: '16px' }}
+            />
+            
+            <div className="flex space-x-2 mt-4">
+              <button
+                onClick={() => updateRequestStatus(selectedRequest.id, 'resolved', responseText)}
+                disabled={!responseText.trim()}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                style={{ minHeight: '44px' }}
+              >
+                Send & Resolve
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedRequest(null)
+                  setResponseText('')
+                }}
+                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                style={{ minHeight: '44px' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   )
 }
 
-export default UserRequestManager
+export default UserRequestsManager
