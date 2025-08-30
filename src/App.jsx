@@ -31,52 +31,72 @@ function App() {
   const [sharedItemId, setSharedItemId] = useState(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+  // Separate async function for proper handling
+  const initializeApp = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
       setUser(session?.user ?? null)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    const adminSession = localStorage.getItem('adminSession')
-    if (adminSession) {
-      try {
-        const session = JSON.parse(adminSession)
-        const twoHours = 2 * 60 * 60 * 1000
-        if (Date.now() - session.loginTime < twoHours) {
-          setIsAdmin(true)
-        } else {
-          localStorage.removeItem('adminSession')
-        }
-      } catch (error) {
-        localStorage.removeItem('adminSession')
-      }
-    }
-
-    // Handle shared URLs - Check if URL contains share parameters
-    const currentPath = window.location.pathname
-    const pathSegments = currentPath.split('/').filter(segment => segment)
-
-    if (pathSegments.length === 2) {
-      const [itemType, itemId] = pathSegments
-      if ((itemType === 'pdf' || itemType === 'quiz') && itemId) {
-        setSharedItemType(itemType)
-        setSharedItemId(itemId)
-
-        // Auto-navigate to appropriate section when user is logged in
-        if (session?.user) {
-          if (itemType === 'pdf') {
-            setShowPDFList(true)
-          } else if (itemType === 'quiz') {
-            setShowQuizList(true)
+      
+      // Handle shared URLs after session is confirmed
+      const currentPath = window.location.pathname
+      const pathSegments = currentPath.split('/').filter(segment => segment)
+      
+      if (pathSegments.length === 2) {
+        const [itemType, itemId] = pathSegments
+        if ((itemType === 'pdf' || itemType === 'quiz') && itemId) {
+          setSharedItemType(itemType)
+          setSharedItemId(itemId)
+          
+          // Only navigate if user is logged in
+          if (session?.user) {
+            if (itemType === 'pdf') {
+              setShowPDFList(true)
+            } else if (itemType === 'quiz') {
+              setShowQuizList(true)
+            }
           }
         }
       }
+    } catch (error) {
+      console.error('Session initialization error:', error)
     }
+  }
+  
+  // Initialize app
+  initializeApp()
 
-    return () => subscription.unsubscribe()
-  }, [])
+  // Set up auth state change listener
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    setUser(session?.user ?? null)
+    
+    // Handle navigation after login for shared links
+    if (session?.user && sharedItemType) {
+      if (sharedItemType === 'pdf') {
+        setShowPDFList(true)
+      } else if (sharedItemType === 'quiz') {
+        setShowQuizList(true)
+      }
+    }
+  })
+
+  // Admin session check (keep existing logic)
+  const adminSession = localStorage.getItem('adminSession')
+  if (adminSession) {
+    try {
+      const session = JSON.parse(adminSession)
+      const twoHours = 2 * 60 * 60 * 1000
+      if (Date.now() - session.loginTime < twoHours) {
+        setIsAdmin(true)
+      } else {
+        localStorage.removeItem('adminSession')
+      }
+    } catch (error) {
+      localStorage.removeItem('adminSession')
+    }
+  }
+
+  return () => subscription.unsubscribe()
+}, [])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
