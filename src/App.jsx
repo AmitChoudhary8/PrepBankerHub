@@ -8,6 +8,7 @@ import PDFs from './pages/PDFs'
 import Magazine from './pages/Magazine'
 import Calendar from './pages/Calendar'
 import Request from './pages/Request'
+import ResetPassword from './pages/ResetPassword'  // NEW - Added
 
 // Components import karne hain
 import Navbar from './components/Navbar'
@@ -70,6 +71,7 @@ function App() {
             <Route path="/magazine" element={<Magazine user={user} />} />
             <Route path="/calendar" element={<Calendar user={user} />} />
             <Route path="/request" element={<Request />} />
+            <Route path="/reset-password" element={<ResetPassword />} />  {/* NEW - Added */}
           </Routes>
         </main>
 
