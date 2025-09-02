@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FiUser, FiLock, FiEye, FiEyeOff } from 'react-icons/fi'
 import toast from 'react-hot-toast'
@@ -10,6 +10,7 @@ function AdminLogin() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [debugMode, setDebugMode] = useState(false) // NEW: Debug toggle
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -24,7 +25,6 @@ function AdminLogin() {
     setLoading(true)
 
     try {
-      // Get admin credentials from environment variables
       const adminUsername = import.meta.env.VITE_ADMIN_USERNAME
       const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD
 
@@ -59,7 +59,30 @@ function AdminLogin() {
           <p className="mt-2 text-sm text-gray-600">
             Access the admin dashboard
           </p>
+          
+          {/* DEBUG TOGGLE BUTTON */}
+          <button
+            onClick={() => setDebugMode(!debugMode)}
+            className="mt-4 px-4 py-2 bg-yellow-500 text-white rounded-lg text-xs"
+          >
+            {debugMode ? 'Hide Debug' : 'Show Debug'}
+          </button>
         </div>
+
+        {/* DEBUG INFO PANEL */}
+        {debugMode && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 text-sm">
+            <h4 className="font-bold mb-2">Debug Information:</h4>
+            <p><strong>Environment Username:</strong> {import.meta.env.VITE_ADMIN_USERNAME || 'Not Found'}</p>
+            <p><strong>Environment Password:</strong> {import.meta.env.VITE_ADMIN_PASSWORD ? 'Found' : 'Not Found'}</p>
+            <p><strong>Entered Username:</strong> {credentials.username}</p>
+            <p><strong>Entered Password:</strong> {credentials.password}</p>
+            <p><strong>All Env Vars:</strong></p>
+            <pre className="text-xs bg-gray-200 p-2 mt-2 overflow-x-auto">
+              {JSON.stringify(import.meta.env, null, 2)}
+            </pre>
+          </div>
+        )}
 
         {/* Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
