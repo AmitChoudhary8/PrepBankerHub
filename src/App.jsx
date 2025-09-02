@@ -22,6 +22,8 @@ import AuthModal from './components/AuthModal'
 // Supabase import karna hai
 import { getCurrentUser } from './utils/supabase'
 
+import PDFManagement from './pages/admin/PDFManagement'
+
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -78,6 +80,7 @@ function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admindash" element={<AdminDashboard />} />
+            <Route path="/admin/pdfs" element={<PDFManagement />} />
           </Routes>
         </main>
 
