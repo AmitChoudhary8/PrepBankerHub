@@ -12,6 +12,7 @@ import {
   FiHome 
 } from 'react-icons/fi'
 import toast from 'react-hot-toast'
+import PDFManagement from './PDFManagement' // Import PDF Management component
 
 function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -49,7 +50,7 @@ function AdminDashboard() {
       case 'dashboard':
         return <DashboardContent />
       case 'download-pdf':
-        return <div className="p-4"><h2 className="text-xl font-bold">Download PDF Management</h2></div>
+        return <PDFManagement />
       case 'magazine':
         return <div className="p-4"><h2 className="text-xl font-bold">Magazine Management</h2></div>
       case 'calendar':
