@@ -10,6 +10,10 @@ import Calendar from './pages/Calendar'
 import Request from './pages/Request'
 import ResetPassword from './pages/ResetPassword'  // NEW - Added
 
+// Admin components import karne hain
+import AdminLogin from './pages/AdminLogin'
+import AdminDashboard from './pages/AdminDashboard'
+
 // Components import karne hain
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -71,7 +75,9 @@ function App() {
             <Route path="/magazine" element={<Magazine user={user} />} />
             <Route path="/calendar" element={<Calendar user={user} />} />
             <Route path="/request" element={<Request />} />
-            <Route path="/reset-password" element={<ResetPassword />} />  {/* NEW - Added */}
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/admindash" element={<AdminDashboard />} />
           </Routes>
         </main>
 
