@@ -12,7 +12,7 @@ import {
   FiHome 
 } from 'react-icons/fi'
 import toast from 'react-hot-toast'
-import PDFManagement from './PDFManagement' // Import PDF Management component
+import PDFManagement from './admin/PDFManagement' // Import PDF Management component
 
 function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
