@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { supabase } from '../utils/supabase'
+import { supabase } from '../../utils/supabase'
 import { FiX, FiUpload, FiLink, FiImage } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 
