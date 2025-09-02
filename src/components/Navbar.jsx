@@ -26,14 +26,13 @@ function Navbar({ user, setUser, setShowAuthModal }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
-          {/* Logo */}
+          {/* Logo Only - No Site Name */}
           <Link to="/" className="flex items-center">
             <img 
               src="/assets/logo.png" 
               alt="PrepBankerHub" 
-              className="h-8 w-8 mr-2"
+              className="h-12 w-auto"
             />
-            <span className="text-xl font-bold text-blue-600">PrepBankerHub</span>
           </Link>
 
           {/* Mobile Menu - Hidden on desktop */}
