@@ -7,6 +7,7 @@ import MagazineManagement from './admin/MagazineManagement';
 import ExamCalendarManagement from './admin/ExamCalendarManagement';
 // Import sections में add करें:
 import RequestReview from './admin/RequestReview'; // Add this line
+import UserManagement from './admin/UserManagement'; // NEW: Import UserManagement
 
 function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -53,11 +54,12 @@ function AdminDashboard() {
       case 'requests':
 return <RequestReview />; // This will now work properly
       case 'users':
-        return <div className="p-4"><h2 className="text-xl font-bold">User Management</h2></div>;
+        return <UserManagement />; // NEW: UserManagement component
       default:
         return <DashboardContent />;
     }
   };
+
 
   if (!isAuthenticated) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
