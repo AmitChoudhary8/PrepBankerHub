@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import PDFManagement from './admin/PDFManagement';
 import MagazineManagement from './admin/MagazineManagement';
 import ExamCalendarManagement from './admin/ExamCalendarManagement';
-import RequestReview from './admin/RequestReview'; // NEW IMPORT
+// Import sections में add करें:
+import RequestReview from './admin/RequestReview'; // Add this line
 
 function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -48,8 +49,9 @@ function AdminDashboard() {
         return <MagazineManagement />;
       case 'calendar':
         return <ExamCalendarManagement />;
+      // Existing code में case 'requests' section:
       case 'requests':
-        return <RequestReview />; // CHANGED: Now loads actual RequestReview component
+return <RequestReview />; // This will now work properly
       case 'users':
         return <div className="p-4"><h2 className="text-xl font-bold">User Management</h2></div>;
       default:
