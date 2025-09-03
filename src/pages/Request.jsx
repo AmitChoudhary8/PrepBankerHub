@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { FiMessageSquare, FiUser, FiMail, FiSend, FiFileText } from 'react-icons/fi'
+import React, { useState, useEffect } from 'react'
+import { FiMessageSquare, FiUser, FiMail, FiSend, FiFileText, FiClock, FiCheckCircle, FiEye } from 'react-icons/fi'
 import { supabase } from '../utils/supabase'
 import toast from 'react-hot-toast'
 
@@ -13,6 +13,8 @@ function Request({ user }) {
     exam_type: 'SBI PO'
   })
   const [loading, setLoading] = useState(false)
+  const [requestStatus, setRequestStatus] = useState(null)
+  const [userRequests, setUserRequests] = useState([])
 
   const requestTypes = [
     { value: 'pdf_request', label: 'Request PDF/Study Material' },
@@ -26,6 +28,29 @@ function Request({ user }) {
     'SBI PO', 'SBI Clerk', 'IBPS PO', 'IBPS Clerk', 'RRB PO', 'RRB Clerk', 
     'Insurance', 'RBI Grade B', 'NABARD', 'Other'
   ]
+
+  // Fetch user's previous requests
+  useEffect(() => {
+    if (user?.email) {
+      fetchUserRequests()
+    }
+  }, [user])
+
+  const fetchUserRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_requests')
+        .select('*')
+        .eq('email', user?.email)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      if (error) throw error
+      setUserRequests(data || [])
+    } catch (error) {
+      console.error('Error fetching user requests:', error)
+    }
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -45,7 +70,7 @@ function Request({ user }) {
 
     setLoading(true)
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_requests')
         .insert({
           user_id: user?.id || null,
@@ -54,13 +79,16 @@ function Request({ user }) {
           request_type: formData.request_type,
           subject: formData.subject,
           message: formData.message,
-          exam_type: formData.exam_type,
-          status: 'pending'
+          exam_type: formData.request_type === 'pdf_request' ? formData.exam_type : null,
+          status: 'review',
+          admin_response: null
         })
+        .select()
 
       if (error) throw error
 
-      toast.success('Request submitted successfully! We will get back to you soon.')
+      toast.success('Request submitted successfully! We will review it soon.')
+      setRequestStatus('review')
       
       // Reset form
       setFormData({
@@ -71,11 +99,41 @@ function Request({ user }) {
         message: '',
         exam_type: 'SBI PO'
       })
+
+      // Refresh user requests
+      fetchUserRequests()
+
     } catch (error) {
       console.error('Error submitting request:', error)
       toast.error('Failed to submit request. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'review':
+        return <FiEye className="text-orange-500" size={16} />
+      case 'approved':
+        return <FiCheckCircle className="text-green-500" size={16} />
+      case 'completed':
+        return <FiCheckCircle className="text-blue-500" size={16} />
+      default:
+        return <FiClock className="text-gray-500" size={16} />
+    }
+  }
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'review':
+        return 'bg-orange-100 text-orange-800'
+      case 'approved':
+        return 'bg-green-100 text-green-800'
+      case 'completed':
+        return 'bg-blue-100 text-blue-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -94,7 +152,7 @@ function Request({ user }) {
       </div>
 
       {/* Request Form */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-8">
         <form onSubmit={handleSubmit} className="space-y-6">
           
           {/* Personal Information */}
@@ -156,13 +214,14 @@ function Request({ user }) {
           {formData.request_type === 'pdf_request' && (
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">
-                Exam Type
+                Exam Type *
               </label>
               <select
                 name="exam_type"
                 value={formData.exam_type}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                required
               >
                 {examTypes.map(exam => (
                   <option key={exam} value={exam}>
@@ -217,8 +276,49 @@ function Request({ user }) {
               <span>{loading ? 'Submitting...' : 'Submit Request'}</span>
             </button>
           </div>
+
+          {/* Status Display */}
+          {requestStatus && (
+            <div className="mt-4 text-center">
+              <div className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ${getStatusColor(requestStatus)}`}>
+                {getStatusIcon(requestStatus)}
+                <span className="ml-2">Status: {requestStatus.charAt(0).toUpperCase() + requestStatus.slice(1)}</span>
+              </div>
+            </div>
+          )}
         </form>
       </div>
+
+      {/* Previous Requests */}
+      {userRequests.length > 0 && (
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+          <h3 className="text-xl font-bold text-gray-800 mb-6">Your Recent Requests</h3>
+          <div className="space-y-4">
+            {userRequests.map((request) => (
+              <div key={request.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="font-semibold text-gray-800">{request.subject}</h4>
+                  <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+                    {getStatusIcon(request.status)}
+                    <span className="ml-1">{request.status.charAt(0).toUpperCase() + request.status.slice(1)}</span>
+                  </div>
+                </div>
+                <p className="text-gray-600 text-sm mb-2">{request.message.substring(0, 100)}...</p>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Type: {request.request_type.replace('_', ' ').toUpperCase()}</span>
+                  <span>{new Date(request.created_at).toLocaleDateString()}</span>
+                </div>
+                {request.admin_response && (
+                  <div className="mt-3 bg-blue-50 p-3 rounded-lg">
+                    <p className="text-sm font-medium text-blue-800">Admin Response:</p>
+                    <p className="text-sm text-blue-700">{request.admin_response}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Information Cards */}
       <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
