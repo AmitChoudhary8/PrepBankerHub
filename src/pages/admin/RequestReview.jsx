@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiMessageSquare, FiUser, FiMail, FiClock, FiCheckCircle, FiEye, FiEdit3, FiSend } from 'react-icons/fi';
-import supabase from '../../../utils/supabase';
+import supabase from '../../utils/supabase';
 import toast from 'react-hot-toast';
 
 function RequestReview() {
