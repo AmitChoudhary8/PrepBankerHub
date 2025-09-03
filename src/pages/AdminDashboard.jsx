@@ -13,6 +13,7 @@ import {
 } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import PDFManagement from './admin/PDFManagement' // Import PDF Management component
+import MagazineManagement from './admin/MagazineManagement' // ✅ NEW: Import Magazine Management component
 
 function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -52,7 +53,7 @@ function AdminDashboard() {
       case 'download-pdf':
         return <PDFManagement />
       case 'magazine':
-        return <div className="p-4"><h2 className="text-xl font-bold">Magazine Management</h2></div>
+        return <MagazineManagement /> // ✅ CHANGED: Now loads actual Magazine Management component
       case 'calendar':
         return <div className="p-4"><h2 className="text-xl font-bold">Calendar & Notifications</h2></div>
       case 'requests':
@@ -190,7 +191,7 @@ function AdminDashboard() {
   )
 }
 
-// Dashboard Grid Component (Desktop)
+// Dashboard Grid Component (Desktop) - No changes needed
 function DashboardGrid() {
   const sections = [
     { id: 'download-pdf', title: 'Download PDF', subtitle: 'Add & Manage', icon: FiFileText, color: 'bg-blue-500' },
@@ -219,7 +220,7 @@ function DashboardGrid() {
   )
 }
 
-// Dashboard Card Component
+// Dashboard Card Component - No changes needed
 function DashboardCard({ section }) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer">
@@ -242,7 +243,7 @@ function DashboardCard({ section }) {
   )
 }
 
-// Dashboard Content Component (Mobile)
+// Dashboard Content Component - No changes needed
 function DashboardContent() {
   return (
     <div className="space-y-4">
