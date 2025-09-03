@@ -54,16 +54,47 @@ function Calendar({ user }) {
 
   // Format date for display
   const formatDisplayDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
       year: 'numeric'
     })
   }
 
+  // Format multiple dates
+  const formatMultipleDates = (datesArray) => {
+    try {
+      if (Array.isArray(datesArray)) {
+        return datesArray.map(date => formatDisplayDate(date)).join(', ')
+      } else if (typeof datesArray === 'string') {
+        const parsedDates = JSON.parse(datesArray)
+        return parsedDates.map(date => formatDisplayDate(date)).join(', ')
+      }
+      return 'N/A'
+    } catch (error) {
+      return 'N/A'
+    }
+  }
+
+  // Get first date from array for countdown calculation
+  const getFirstDate = (datesArray) => {
+    try {
+      if (Array.isArray(datesArray)) {
+        return datesArray[0]
+      } else if (typeof datesArray === 'string') {
+        const parsedDates = JSON.parse(datesArray)
+        return parsedDates[0]
+      }
+      return null
+    } catch (error) {
+      return null
+    }
+  }
+
   const filteredEvents = searchTerm
     ? events.filter(event => 
-        event.exam_name.toLowerCase().includes(searchTerm.toLowerCase())
+        event.exam_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (event.description && event.description.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     : events
 
@@ -71,7 +102,7 @@ function Calendar({ user }) {
     return (
       <div className="max-w-7xl mx-auto py-12 px-4">
         <div className="flex items-center justify-center h-64">
-          <div className="loading-spinner w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
         </div>
       </div>
     )
@@ -109,8 +140,10 @@ function Calendar({ user }) {
           <div className="md:hidden space-y-4">
             {filteredEvents.map(event => {
               const formDays = getDaysRemaining(event.form_fill_last_date)
-              const prelimsDays = getDaysRemaining(event.prelims_exam_date)
-              const mainsDays = getDaysRemaining(event.mains_exam_date)
+              const prelimsFirstDate = getFirstDate(event.prelims_exam_date)
+              const mainsFirstDate = getFirstDate(event.mains_exam_date)
+              const prelimsDays = prelimsFirstDate ? getDaysRemaining(prelimsFirstDate) : { text: 'N/A', color: 'text-gray-500', bgColor: 'bg-gray-100' }
+              const mainsDays = mainsFirstDate ? getDaysRemaining(mainsFirstDate) : { text: 'N/A', color: 'text-gray-500', bgColor: 'bg-gray-100' }
 
               return (
                 <div key={event.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-4">
@@ -120,6 +153,11 @@ function Calendar({ user }) {
                     <h3 className="text-lg font-bold text-gray-800">{event.exam_name}</h3>
                     <FiClock className="text-blue-500" size={20} />
                   </div>
+
+                  {/* Description */}
+                  {event.description && (
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{event.description}</p>
+                  )}
 
                   {/* Event Details with Countdown */}
                   <div className="space-y-3 mb-4">
@@ -135,8 +173,8 @@ function Calendar({ user }) {
 
                     <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
                       <div>
-                        <span className="text-gray-600 text-sm">Prelims Exam Date:</span>
-                        <div className="font-medium">{formatDisplayDate(event.prelims_exam_date)}</div>
+                        <span className="text-gray-600 text-sm">Prelims Exam Dates:</span>
+                        <div className="font-medium text-xs">{formatMultipleDates(event.prelims_exam_date)}</div>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${prelimsDays.color} ${prelimsDays.bgColor}`}>
                         {prelimsDays.text}
@@ -145,8 +183,8 @@ function Calendar({ user }) {
 
                     <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
                       <div>
-                        <span className="text-gray-600 text-sm">Mains Exam Date:</span>
-                        <div className="font-medium">{formatDisplayDate(event.mains_exam_date)}</div>
+                        <span className="text-gray-600 text-sm">Mains Exam Dates:</span>
+                        <div className="font-medium text-xs">{formatMultipleDates(event.mains_exam_date)}</div>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${mainsDays.color} ${mainsDays.bgColor}`}>
                         {mainsDays.text}
@@ -155,15 +193,17 @@ function Calendar({ user }) {
                   </div>
 
                   {/* Notification URL */}
-                  <a
-                    href={event.notification_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2 text-sm"
-                  >
-                    <FiExternalLink size={16} />
-                    <span>Notification URL</span>
-                  </a>
+                  {event.notification_url && (
+                    <a
+                      href={event.notification_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2 text-sm"
+                    >
+                      <FiExternalLink size={16} />
+                      <span>Notification URL</span>
+                    </a>
+                  )}
                 </div>
               )
             })}
@@ -173,17 +213,24 @@ function Calendar({ user }) {
           <div className="hidden md:grid grid-cols-4 gap-6">
             {filteredEvents.map(event => {
               const formDays = getDaysRemaining(event.form_fill_last_date)
-              const prelimsDays = getDaysRemaining(event.prelims_exam_date)
-              const mainsDays = getDaysRemaining(event.mains_exam_date)
+              const prelimsFirstDate = getFirstDate(event.prelims_exam_date)
+              const mainsFirstDate = getFirstDate(event.mains_exam_date)
+              const prelimsDays = prelimsFirstDate ? getDaysRemaining(prelimsFirstDate) : { text: 'N/A', color: 'text-gray-500', bgColor: 'bg-gray-100' }
+              const mainsDays = mainsFirstDate ? getDaysRemaining(mainsFirstDate) : { text: 'N/A', color: 'text-gray-500', bgColor: 'bg-gray-100' }
 
               return (
-                <div key={event.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-4 card-hover">
+                <div key={event.id} className="bg-white rounded-lg shadow-md border border-gray-200 p-4 hover:shadow-lg transition-shadow">
                   
                   {/* Exam Name with Clock */}
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-bold text-gray-800 line-clamp-1">{event.exam_name}</h3>
                     <FiClock className="text-blue-500" size={16} />
                   </div>
+
+                  {/* Description */}
+                  {event.description && (
+                    <p className="text-gray-600 text-xs mb-3 line-clamp-2">{event.description}</p>
+                  )}
 
                   {/* Event Details with Countdown */}
                   <div className="space-y-2 mb-4">
@@ -196,16 +243,16 @@ function Calendar({ user }) {
                     </div>
 
                     <div className="p-2 rounded bg-gray-50">
-                      <div className="text-xs text-gray-600 mb-1">Prelims Exam Date</div>
-                      <div className="text-xs font-medium mb-1">{formatDisplayDate(event.prelims_exam_date)}</div>
+                      <div className="text-xs text-gray-600 mb-1">Prelims Exam Dates</div>
+                      <div className="text-xs font-medium mb-1 line-clamp-2">{formatMultipleDates(event.prelims_exam_date)}</div>
                       <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${prelimsDays.color} ${prelimsDays.bgColor}`}>
                         {prelimsDays.text}
                       </span>
                     </div>
 
                     <div className="p-2 rounded bg-gray-50">
-                      <div className="text-xs text-gray-600 mb-1">Mains Exam Date</div>
-                      <div className="text-xs font-medium mb-1">{formatDisplayDate(event.mains_exam_date)}</div>
+                      <div className="text-xs text-gray-600 mb-1">Mains Exam Dates</div>
+                      <div className="text-xs font-medium mb-1 line-clamp-2">{formatMultipleDates(event.mains_exam_date)}</div>
                       <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${mainsDays.color} ${mainsDays.bgColor}`}>
                         {mainsDays.text}
                       </span>
@@ -213,15 +260,17 @@ function Calendar({ user }) {
                   </div>
 
                   {/* Notification URL */}
-                  <a
-                    href={event.notification_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full bg-blue-500 text-white py-2 px-3 rounded font-medium hover:bg-blue-600 transition-colors text-xs flex items-center justify-center space-x-1"
-                  >
-                    <FiExternalLink size={12} />
-                    <span>Notification URL</span>
-                  </a>
+                  {event.notification_url && (
+                    <a
+                      href={event.notification_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-blue-500 text-white py-2 px-3 rounded font-medium hover:bg-blue-600 transition-colors text-xs flex items-center justify-center space-x-1"
+                    >
+                      <FiExternalLink size={12} />
+                      <span>Notification URL</span>
+                    </a>
+                  )}
                 </div>
               )
             })}
