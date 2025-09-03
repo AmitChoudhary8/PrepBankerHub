@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { FiMessageSquare, FiUser, FiMail, FiSend, FiFileText, FiClock, FiCheckCircle, FiEye } from 'react-icons/fi'
+import { FiMessageSquare, FiUser, FiMail, FiSend, FiFileText, FiClock, FiCheckCircle, FiEye, FiAlertCircle } from 'react-icons/fi'
 import { supabase } from '../utils/supabase'
 import toast from 'react-hot-toast'
 
@@ -15,6 +15,7 @@ function Request({ user }) {
   const [loading, setLoading] = useState(false)
   const [requestStatus, setRequestStatus] = useState(null)
   const [userRequests, setUserRequests] = useState([])
+  const [debugInfo, setDebugInfo] = useState(null) // ✅ NEW: Debug state
 
   const requestTypes = [
     { value: 'pdf_request', label: 'Request PDF/Study Material' },
@@ -38,6 +39,8 @@ function Request({ user }) {
 
   const fetchUserRequests = async () => {
     try {
+      console.log('🔍 Fetching user requests for:', user?.email) // ✅ Debug log
+
       const { data, error } = await supabase
         .from('user_requests')
         .select('*')
@@ -45,10 +48,20 @@ function Request({ user }) {
         .order('created_at', { ascending: false })
         .limit(5)
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Error fetching user requests:', error)
+        throw error
+      }
+      
+      console.log('✅ Fetched user requests:', data) // ✅ Debug log
       setUserRequests(data || [])
     } catch (error) {
-      console.error('Error fetching user requests:', error)
+      console.error('❌ Catch Error fetching user requests:', error)
+      setDebugInfo({
+        action: 'fetch_requests',
+        error: error.message || JSON.stringify(error),
+        timestamp: new Date().toISOString()
+      })
     }
   }
 
@@ -63,30 +76,80 @@ function Request({ user }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // Clear previous debug info
+    setDebugInfo(null)
+    
+    console.log('🚀 Form submission started with data:', formData) // ✅ Debug log
+    console.log('👤 User object:', user) // ✅ Debug log
+    
     if (!formData.name || !formData.email || !formData.subject || !formData.message) {
       toast.error('Please fill all required fields')
+      console.log('❌ Validation failed: Missing required fields')
       return
     }
 
     setLoading(true)
+    
+    // Prepare insert data
+    const insertData = {
+      user_id: user?.id || null,
+      name: formData.name,
+      email: formData.email,
+      request_type: formData.request_type,
+      subject: formData.subject,
+      message: formData.message,
+      exam_type: formData.request_type === 'pdf_request' ? formData.exam_type : null,
+      status: 'review',
+      admin_response: null
+    }
+    
+    console.log('📝 Inserting data:', insertData) // ✅ Debug log
+    
     try {
+      // Check if table exists
+      console.log('🔍 Checking Supabase connection...')
+      
       const { data, error } = await supabase
         .from('user_requests')
-        .insert({
-          user_id: user?.id || null,
-          name: formData.name,
-          email: formData.email,
-          request_type: formData.request_type,
-          subject: formData.subject,
-          message: formData.message,
-          exam_type: formData.request_type === 'pdf_request' ? formData.exam_type : null,
-          status: 'review',
-          admin_response: null
-        })
+        .insert(insertData)
         .select()
 
-      if (error) throw error
+      console.log('📊 Supabase response - Data:', data) // ✅ Debug log
+      console.log('📊 Supabase response - Error:', error) // ✅ Debug log
 
+      if (error) {
+        console.error('❌ Supabase Insert Error Details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          full_error: error
+        })
+        
+        setDebugInfo({
+          action: 'insert_request',
+          error: error.message || 'Unknown Supabase error',
+          details: error.details || 'No details available',
+          code: error.code || 'No code',
+          hint: error.hint || 'No hint',
+          timestamp: new Date().toISOString(),
+          insertData: insertData
+        })
+        
+        // Show specific error messages based on error code
+        if (error.code === '42501') {
+          toast.error('Permission denied. Please check table policies or try logging in again.')
+        } else if (error.code === '23505') {
+          toast.error('Duplicate entry. This request may already exist.')
+        } else {
+          toast.error(`Failed to submit request: ${error.message}`)
+        }
+        
+        setLoading(false)
+        return
+      }
+
+      console.log('✅ Request submitted successfully:', data)
       toast.success('Request submitted successfully! We will review it soon.')
       setRequestStatus('review')
       
@@ -104,8 +167,22 @@ function Request({ user }) {
       fetchUserRequests()
 
     } catch (error) {
-      console.error('Error submitting request:', error)
-      toast.error('Failed to submit request. Please try again.')
+      console.error('❌ Handle Submit Catch Error Details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        full_error: error
+      })
+      
+      setDebugInfo({
+        action: 'submit_catch',
+        error: error.message || 'Unknown catch error',
+        name: error.name || 'No name',
+        timestamp: new Date().toISOString(),
+        insertData: insertData
+      })
+      
+      toast.error(`Failed to submit request. Error: ${error.message || JSON.stringify(error)}`)
     } finally {
       setLoading(false)
     }
@@ -140,6 +217,34 @@ function Request({ user }) {
   return (
     <div className="max-w-4xl mx-auto py-12 px-4">
       
+      {/* Debug Information Panel - Only show in development or when there's an error */}
+      {debugInfo && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <FiAlertCircle className="text-red-500 mr-3 mt-0.5 flex-shrink-0" size={20} />
+            <div className="flex-1">
+              <h4 className="font-semibold text-red-800 mb-2">Debug Information</h4>
+              <div className="text-sm text-red-700 space-y-1">
+                <p><strong>Action:</strong> {debugInfo.action}</p>
+                <p><strong>Error:</strong> {debugInfo.error}</p>
+                {debugInfo.code && <p><strong>Code:</strong> {debugInfo.code}</p>}
+                {debugInfo.details && <p><strong>Details:</strong> {debugInfo.details}</p>}
+                {debugInfo.hint && <p><strong>Hint:</strong> {debugInfo.hint}</p>}
+                <p><strong>Timestamp:</strong> {debugInfo.timestamp}</p>
+                {debugInfo.insertData && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer font-medium">Insert Data</summary>
+                    <pre className="mt-1 text-xs bg-red-100 p-2 rounded overflow-auto">
+                      {JSON.stringify(debugInfo.insertData, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
