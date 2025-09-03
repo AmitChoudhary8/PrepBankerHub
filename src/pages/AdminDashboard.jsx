@@ -13,7 +13,8 @@ import {
 } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import PDFManagement from './admin/PDFManagement' // Import PDF Management component
-import MagazineManagement from './admin/MagazineManagement' // ✅ NEW: Import Magazine Management component
+import MagazineManagement from './admin/MagazineManagement' // Import Magazine Management component
+import ExamCalendarManagement from './admin/ExamCalendarManagement' // ✅ NEW: Import Exam Calendar Management component
 
 function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -53,9 +54,9 @@ function AdminDashboard() {
       case 'download-pdf':
         return <PDFManagement />
       case 'magazine':
-        return <MagazineManagement /> // ✅ CHANGED: Now loads actual Magazine Management component
+        return <MagazineManagement />
       case 'calendar':
-        return <div className="p-4"><h2 className="text-xl font-bold">Calendar & Notifications</h2></div>
+        return <ExamCalendarManagement /> // ✅ CHANGED: Now loads actual ExamCalendarManagement component
       case 'requests':
         return <div className="p-4"><h2 className="text-xl font-bold">User Requests</h2></div>
       case 'users':
@@ -191,7 +192,7 @@ function AdminDashboard() {
   )
 }
 
-// Dashboard Grid Component (Desktop) - No changes needed
+// Dashboard Grid Component (Desktop)
 function DashboardGrid() {
   const sections = [
     { id: 'download-pdf', title: 'Download PDF', subtitle: 'Add & Manage', icon: FiFileText, color: 'bg-blue-500' },
@@ -220,7 +221,7 @@ function DashboardGrid() {
   )
 }
 
-// Dashboard Card Component - No changes needed
+// Dashboard Card Component
 function DashboardCard({ section }) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow cursor-pointer">
@@ -243,7 +244,7 @@ function DashboardCard({ section }) {
   )
 }
 
-// Dashboard Content Component - No changes needed
+// Dashboard Content Component
 function DashboardContent() {
   return (
     <div className="space-y-4">
