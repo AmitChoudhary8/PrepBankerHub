@@ -15,6 +15,9 @@ import toast from 'react-hot-toast'
 import PDFManagement from './admin/PDFManagement' // Import PDF Management component
 import MagazineManagement from './admin/MagazineManagement' // Import Magazine Management component
 import ExamCalendarManagement from './admin/ExamCalendarManagement' // ✅ NEW: Import Exam Calendar Management component
+// Add this import at the top
+import RequestReview from './admin/RequestReview' // ✅ NEW: Import Request Review component
+
 
 function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -58,7 +61,7 @@ function AdminDashboard() {
       case 'calendar':
         return <ExamCalendarManagement /> // ✅ CHANGED: Now loads actual ExamCalendarManagement component
       case 'requests':
-        return <div className="p-4"><h2 className="text-xl font-bold">User Requests</h2></div>
+      return <RequestReview /> // ✅ CHANGED: Now loads actual RequestReview component
       case 'users':
         return <div className="p-4"><h2 className="text-xl font-bold">User Management</h2></div>
       default:
