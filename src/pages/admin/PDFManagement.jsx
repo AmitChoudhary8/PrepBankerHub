@@ -32,9 +32,9 @@ function PDFManagement() {
     setLoading(true)
     try {
       const { data, error } = await supabase
-        .from('pdfs')
+        .from('pdf_resources')
         .select('*')
-        .order('upload_date', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) {
         toast.error('Error fetching PDFs')
@@ -72,7 +72,7 @@ function PDFManagement() {
 
     try {
       const { error } = await supabase
-        .from('pdfs')
+        .from('pdf_resources')
         .delete()
         .eq('id', pdf.id)
 
@@ -91,7 +91,7 @@ function PDFManagement() {
   const toggleStatus = async (pdf) => {
     try {
       const { error } = await supabase
-        .from('pdfs')
+        .from('pdf_resources')
         .update({ is_active: !pdf.is_active })
         .eq('id', pdf.id)
 
@@ -202,7 +202,7 @@ function PDFManagement() {
                   <p className="text-sm text-gray-600">This Month</p>
                   <p className="text-2xl font-bold text-gray-800">
                     {pdfs.filter(pdf => {
-                      const uploadDate = new Date(pdf.upload_date)
+                      const uploadDate = new Date(pdf.created_at)
                       const now = new Date()
                       return uploadDate.getMonth() === now.getMonth() && 
                              uploadDate.getFullYear() === now.getFullYear()
@@ -267,7 +267,7 @@ function PDFManagement() {
                                 {pdf.description || 'No description'}
                               </p>
                               <p className="text-xs text-gray-400 mt-1">
-                                {formatDate(pdf.upload_date)}
+                                {formatDate(pdf.created_at)}
                               </p>
                             </div>
                           </div>
