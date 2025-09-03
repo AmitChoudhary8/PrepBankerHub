@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { FiDownload, FiEye, FiX } from 'react-icons/fi'
+import { FiDownload, FiEye, FiX, FiCalendar, FiFilter } from 'react-icons/fi'
 import { supabase } from '../utils/supabase'
 import toast from 'react-hot-toast'
 
@@ -8,111 +8,48 @@ function Magazine({ user }) {
   const [allMagazines, setAllMagazines] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState('')
+  const [selectedYear, setSelectedYear] = useState('')
+  const [selectedLanguage, setSelectedLanguage] = useState('')
   const [availableMonths, setAvailableMonths] = useState([])
+  const [availableYears, setAvailableYears] = useState([])
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [selectedMagazine, setSelectedMagazine] = useState(null)
-
-  // Sample magazine data with year-based image naming
-  const sampleMagazines = [
-    {
-      id: 1,
-      title: 'Current Affairs Magazine - September 2025 (English)',
-      description: 'Comprehensive current affairs compilation for banking exams',
-      month: 'September',
-      year: '2025',
-      language: 'English',
-      cover_image: '/assets/magazines/september2025english.png',
-      google_drive_link: 'https://drive.google.com/file/d/sample1/view',
-      preview_link: 'https://drive.google.com/file/d/sample1/preview',
-      file_size: '12 MB'
-    },
-    {
-      id: 2,
-      title: 'Current Affairs Magazine - September 2025 (Hindi)', 
-      description: 'संपूर्ण करेंट अफेयर्स सितंबर 2025 बैंकिंग परीक्षाओं के लिए',
-      month: 'September',
-      year: '2025',
-      language: 'Hindi',
-      cover_image: '/assets/magazines/september2025hindi.png',
-      google_drive_link: 'https://drive.google.com/file/d/sample2/view',
-      preview_link: 'https://drive.google.com/file/d/sample2/preview',
-      file_size: '12 MB'
-    },
-    {
-      id: 3,
-      title: 'Current Affairs Magazine - August 2025 (English)',
-      description: 'Complete August 2025 current affairs for competitive exams',
-      month: 'August',
-      year: '2025', 
-      language: 'English',
-      cover_image: '/assets/magazines/august2025english.png',
-      google_drive_link: 'https://drive.google.com/file/d/sample3/view',
-      preview_link: 'https://drive.google.com/file/d/sample3/preview',
-      file_size: '11 MB'
-    },
-    {
-      id: 4,
-      title: 'Current Affairs Magazine - August 2025 (Hindi)',
-      description: 'संपूर्ण करेंट अफेयर्स अगस्त 2025 प्रतियोगी परीक्षाओं के लिए',
-      month: 'August', 
-      year: '2025',
-      language: 'Hindi',
-      cover_image: '/assets/magazines/august2025hindi.png',
-      google_drive_link: 'https://drive.google.com/file/d/sample4/view',
-      preview_link: 'https://drive.google.com/file/d/sample4/preview',
-      file_size: '11 MB'
-    },
-    {
-      id: 5,
-      title: 'Current Affairs Magazine - July 2025 (English)',
-      description: 'Complete July 2025 current affairs compilation',
-      month: 'July',
-      year: '2025',
-      language: 'English', 
-      cover_image: '/assets/magazines/july2025english.png',
-      google_drive_link: 'https://drive.google.com/file/d/sample5/view',
-      preview_link: 'https://drive.google.com/file/d/sample5/preview',
-      file_size: '10 MB'
-    },
-    {
-      id: 6,
-      title: 'Current Affairs Magazine - July 2025 (Hindi)',
-      description: 'संपूर्ण करेंट अफेयर्स जुलाई 2025',
-      month: 'July',
-      year: '2025',
-      language: 'Hindi',
-      cover_image: '/assets/magazines/july2025hindi.png', 
-      google_drive_link: 'https://drive.google.com/file/d/sample6/view',
-      preview_link: 'https://drive.google.com/file/d/sample6/preview',
-      file_size: '10 MB'
-    }
-  ]
 
   useEffect(() => {
     loadMagazines()
   }, [])
 
   useEffect(() => {
-    if (selectedMonth) {
-      const filtered = allMagazines.filter(mag => `${mag.month} ${mag.year}` === selectedMonth)
-      setMagazines(filtered)
-    } else {
-      // Show latest month magazines by default
-      setMagazines(allMagazines.slice(0, 2))
-    }
-  }, [selectedMonth, allMagazines])
+    filterMagazines()
+  }, [selectedMonth, selectedYear, selectedLanguage, allMagazines])
 
   const loadMagazines = async () => {
     try {
-      // Using sample data - later replace with Supabase query
-      setAllMagazines(sampleMagazines)
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('magazines')
+        .select('*')
+        .eq('is_active', true)
+        .order('year', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error loading magazines:', error)
+        toast.error('Failed to load magazines')
+        setLoading(false)
+        return
+      }
+
+      setAllMagazines(data || [])
+      setMagazines(data || [])
       
-      // Extract unique months and sort by latest first
-      const months = [...new Set(sampleMagazines.map(m => `${m.month} ${m.year}`))]
+      // Extract unique months, years for filters
+      const months = [...new Set(data?.map(m => m.month) || [])]
+      const years = [...new Set(data?.map(m => m.year) || [])].sort((a, b) => b - a)
+      
       setAvailableMonths(months)
+      setAvailableYears(years)
       
-      // Set latest month magazines by default
-      setMagazines(sampleMagazines.slice(0, 2))
       setLoading(false)
     } catch (error) {
       console.error('Error loading magazines:', error)
@@ -121,11 +58,35 @@ function Magazine({ user }) {
     }
   }
 
+  const filterMagazines = () => {
+    let filtered = allMagazines
+
+    if (selectedMonth) {
+      filtered = filtered.filter(mag => mag.month === selectedMonth)
+    }
+    
+    if (selectedYear) {
+      filtered = filtered.filter(mag => mag.year === selectedYear)
+    }
+    
+    if (selectedLanguage) {
+      filtered = filtered.filter(mag => mag.language === selectedLanguage)
+    }
+
+    setMagazines(filtered)
+  }
+
   const handlePreview = (magazine) => {
     if (!user) {
       toast.error('Please login to preview magazines')
       return
     }
+    
+    if (!magazine.preview_link) {
+      toast.error('Preview not available for this magazine')
+      return
+    }
+    
     setSelectedMagazine(magazine)
     setShowPreviewModal(true)
   }
@@ -137,11 +98,42 @@ function Magazine({ user }) {
     }
 
     try {
-      // Track download
+      // Track download in analytics
+      await supabase.from('magazine_downloads').insert([{
+        magazine_id: magazine.id,
+        user_id: user.id,
+        user_agent: navigator.userAgent
+      }])
+      
+      // Increment download count
+      await supabase.rpc('increment_magazine_downloads', {
+        magazine_id: magazine.id
+      })
+
+      // Update local state for immediate UI feedback
+      setAllMagazines(prevMags => 
+        prevMags.map(m => 
+          m.id === magazine.id 
+            ? { ...m, download_count: (m.download_count || 0) + 1 }
+            : m
+        )
+      )
+      setMagazines(prevMags => 
+        prevMags.map(m => 
+          m.id === magazine.id 
+            ? { ...m, download_count: (m.download_count || 0) + 1 }
+            : m
+        )
+      )
+      
+      // Open download link
       window.open(magazine.google_drive_link, '_blank')
       toast.success('Download started!')
     } catch (error) {
-      toast.error('Download failed')
+      console.error('Error tracking download:', error)
+      // Still allow download even if tracking fails
+      window.open(magazine.google_drive_link, '_blank')
+      toast.success('Download started!')
     }
   }
 
@@ -156,10 +148,16 @@ function Magazine({ user }) {
               src={selectedMagazine?.cover_image} 
               alt={selectedMagazine?.title}
               className="w-16 h-20 object-cover rounded"
+              onError={(e) => {
+                e.target.src = '/assets/magazines/default.png'
+              }}
             />
             <div>
               <h3 className="text-lg font-bold text-gray-800">{selectedMagazine?.title}</h3>
               <p className="text-sm text-gray-600">{selectedMagazine?.description}</p>
+              <p className="text-xs text-gray-500">
+                {selectedMagazine?.month} {selectedMagazine?.year} • {selectedMagazine?.language}
+              </p>
               <p className="text-xs text-gray-500">{selectedMagazine?.file_size}</p>
             </div>
           </div>
@@ -184,18 +182,11 @@ function Magazine({ user }) {
         <div className="p-4 border-t bg-gray-50">
           <div className="flex space-x-4">
             <button
-              onClick={() => handlePreview(selectedMagazine)}
-              className="bg-blue-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center space-x-2"
-            >
-              <FiEye size={18} />
-              <span>Preview</span>
-            </button>
-            <button
               onClick={() => handleDownload(selectedMagazine)}
               className="bg-green-500 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center space-x-2"
             >
               <FiDownload size={18} />
-              <span>Download</span>
+              <span>Download PDF</span>
             </button>
           </div>
         </div>
@@ -203,25 +194,44 @@ function Magazine({ user }) {
     </div>
   )
 
+  // Group magazines by month for better display
+  const groupedMagazines = []
+  const processedPairs = new Set()
+
+  magazines.forEach(magazine => {
+    const key = `${magazine.month}-${magazine.year}`
+    if (processedPairs.has(key)) return
+    
+    const englishMag = magazines.find(m => 
+      m.month === magazine.month && 
+      m.year === magazine.year && 
+      m.language === 'English'
+    )
+    const hindiMag = magazines.find(m => 
+      m.month === magazine.month && 
+      m.year === magazine.year && 
+      m.language === 'Hindi'
+    )
+    
+    if (englishMag || hindiMag) {
+      groupedMagazines.push({ 
+        english: englishMag, 
+        hindi: hindiMag,
+        month: magazine.month,
+        year: magazine.year
+      })
+      processedPairs.add(key)
+    }
+  })
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto py-12 px-4">
         <div className="flex items-center justify-center h-64">
-          <div className="loading-spinner w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
         </div>
       </div>
     )
-  }
-
-  // Group magazines by month for desktop view
-  const groupedMagazines = []
-  for (let i = 0; i < allMagazines.length; i += 2) {
-    const englishMag = allMagazines.find(m => m.language === 'English' && m.month === allMagazines[i].month && m.year === allMagazines[i].year)
-    const hindiMag = allMagazines.find(m => m.language === 'Hindi' && m.month === allMagazines[i].month && m.year === allMagazines[i].year)
-    
-    if (englishMag && hindiMag && !groupedMagazines.find(g => g.english.month === englishMag.month && g.english.year === englishMag.year)) {
-      groupedMagazines.push({ english: englishMag, hindi: hindiMag })
-    }
   }
 
   return (
@@ -232,166 +242,288 @@ function Magazine({ user }) {
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
           Current Affairs Magazines
         </h1>
+        <p className="text-gray-600">Monthly current affairs updates for competitive exams</p>
       </div>
 
-      {/* Month Selection Dropdown */}
-      <div className="flex justify-center mb-8">
-        <select
-          className="px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
+      {/* Filters */}
+      <div className="flex flex-col md:flex-row gap-4 mb-8 justify-center">
+        {/* Month Filter */}
+        <div className="flex items-center space-x-2">
+          <FiCalendar className="text-gray-400" />
+          <select
+            className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          >
+            <option value="">All Months</option>
+            {availableMonths.map(month => (
+              <option key={month} value={month}>{month}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Year Filter */}
+        <div className="flex items-center space-x-2">
+          <FiCalendar className="text-gray-400" />
+          <select
+            className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+          >
+            <option value="">All Years</option>
+            {availableYears.map(year => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Language Filter */}
+        <div className="flex items-center space-x-2">
+          <FiFilter className="text-gray-400" />
+          <select
+            className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-700"
+            value={selectedLanguage}
+            onChange={(e) => setSelectedLanguage(e.target.value)}
+          >
+            <option value="">All Languages</option>
+            <option value="English">English</option>
+            <option value="Hindi">Hindi</option>
+          </select>
+        </div>
+
+        {/* Clear Filters */}
+        <button
+          onClick={() => {
+            setSelectedMonth('')
+            setSelectedYear('')
+            setSelectedLanguage('')
+          }}
+          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
         >
-          <option value="">All Months (Latest First)</option>
-          {availableMonths.map(month => (
-            <option key={month} value={month}>{month}</option>
-          ))}
-        </select>
+          Clear Filters
+        </button>
       </div>
 
-      {/* Mobile Layout */}
-      <div className="md:hidden space-y-6">
-        {selectedMonth ? (
-          // Show specific month magazines
-          <div>
-            <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">
-              {selectedMonth}
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              {magazines.map(magazine => (
-                <div key={magazine.id} className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-                  <img 
-                    src={magazine.cover_image} 
-                    alt={magazine.title}
-                    className="w-full h-40 object-cover"
-                  />
-                  <div className="p-3">
-                    <h3 className="font-bold text-sm mb-1 line-clamp-1">{magazine.title}</h3>
-                    <p className="text-gray-600 text-xs mb-2 line-clamp-2">{magazine.description}</p>
-                    <button
-                      onClick={() => handlePreview(magazine)}
-                      className="w-full bg-blue-500 text-white py-2 px-3 rounded text-xs font-medium hover:bg-blue-600 transition-colors"
-                    >
-                      <FiDownload size={14} className="inline mr-1" />
-                      Download
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          // Show all magazines grouped by month
-          <div className="space-y-8">
+      {/* Magazines Display */}
+      {magazines.length > 0 ? (
+        <>
+          {/* Mobile Layout */}
+          <div className="md:hidden space-y-6">
             {groupedMagazines.map((group, index) => (
               <div key={index}>
                 <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">
-                  {group.english.month} {group.english.year}
+                  {group.month} {group.year}
                 </h2>
                 <div className="grid grid-cols-2 gap-4">
                   {/* English Magazine */}
-                  <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-                    <img 
-                      src={group.english.cover_image} 
-                      alt={group.english.title}
-                      className="w-full h-40 object-cover"
-                    />
-                    <div className="p-3">
-                      <h3 className="font-bold text-sm mb-1 line-clamp-1">{group.english.title}</h3>
-                      <p className="text-gray-600 text-xs mb-2 line-clamp-2">{group.english.description}</p>
-                      <button
-                        onClick={() => handlePreview(group.english)}
-                        className="w-full bg-blue-500 text-white py-2 px-3 rounded text-xs font-medium hover:bg-blue-600 transition-colors"
-                      >
-                        <FiDownload size={14} className="inline mr-1" />
-                        Download
-                      </button>
+                  {group.english && (
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                      <img 
+                        src={group.english.cover_image} 
+                        alt={group.english.title}
+                        className="w-full h-40 object-cover"
+                        onError={(e) => {
+                          e.target.src = '/assets/magazines/default.png'
+                        }}
+                      />
+                      <div className="p-3">
+                        <h3 className="font-bold text-sm mb-1 line-clamp-1">
+                          Current Affairs Magazine
+                        </h3>
+                        <p className="text-xs text-gray-500 mb-2">{group.month} {group.year} (English)</p>
+                        <div className="space-y-2">
+                          {group.english.preview_link && (
+                            <button
+                              onClick={() => handlePreview(group.english)}
+                              className="w-full bg-blue-500 text-white py-2 px-3 rounded text-xs font-medium hover:bg-blue-600 transition-colors flex items-center justify-center space-x-1"
+                            >
+                              <FiEye size={12} />
+                              <span>Preview</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDownload(group.english)}
+                            className="w-full bg-green-500 text-white py-2 px-3 rounded text-xs font-medium hover:bg-green-600 transition-colors flex items-center justify-center space-x-1"
+                          >
+                            <FiDownload size={12} />
+                            <span>Download</span>
+                          </button>
+                        </div>
+                        {group.english.download_count > 0 && (
+                          <p className="text-xs text-gray-500 text-center mt-2">
+                            {group.english.download_count} downloads
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Hindi Magazine */}
-                  <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
-                    <img 
-                      src={group.hindi.cover_image} 
-                      alt={group.hindi.title}
-                      className="w-full h-40 object-cover"
-                    />
-                    <div className="p-3">
-                      <h3 className="font-bold text-sm mb-1 line-clamp-1">{group.hindi.title}</h3>
-                      <p className="text-gray-600 text-xs mb-2 line-clamp-2">{group.hindi.description}</p>
-                      <button
-                        onClick={() => handlePreview(group.hindi)}
-                        className="w-full bg-blue-500 text-white py-2 px-3 rounded text-xs font-medium hover:bg-blue-600 transition-colors"
-                      >
-                        <FiDownload size={14} className="inline mr-1" />
-                        Download
-                      </button>
+                  {group.hindi && (
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+                      <img 
+                        src={group.hindi.cover_image} 
+                        alt={group.hindi.title}
+                        className="w-full h-40 object-cover"
+                        onError={(e) => {
+                          e.target.src = '/assets/magazines/default.png'
+                        }}
+                      />
+                      <div className="p-3">
+                        <h3 className="font-bold text-sm mb-1 line-clamp-1">
+                          करेंट अफेयर्स मैगज़ीन
+                        </h3>
+                        <p className="text-xs text-gray-500 mb-2">{group.month} {group.year} (Hindi)</p>
+                        <div className="space-y-2">
+                          {group.hindi.preview_link && (
+                            <button
+                              onClick={() => handlePreview(group.hindi)}
+                              className="w-full bg-blue-500 text-white py-2 px-3 rounded text-xs font-medium hover:bg-blue-600 transition-colors flex items-center justify-center space-x-1"
+                            >
+                              <FiEye size={12} />
+                              <span>Preview</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDownload(group.hindi)}
+                            className="w-full bg-green-500 text-white py-2 px-3 rounded text-xs font-medium hover:bg-green-600 transition-colors flex items-center justify-center space-x-1"
+                          >
+                            <FiDownload size={12} />
+                            <span>Download</span>
+                          </button>
+                        </div>
+                        {group.hindi.download_count > 0 && (
+                          <p className="text-xs text-gray-500 text-center mt-2">
+                            {group.hindi.download_count} downloads
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
-        )}
-      </div>
 
-      {/* Desktop Layout - 4 magazines per row */}
-      <div className="hidden md:block">
-        <div className="grid grid-cols-4 gap-6">
-          {groupedMagazines.map((group, index) => (
-            <React.Fragment key={index}>
-              {/* English Magazine */}
-              <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden card-hover">
-                <img 
-                  src={group.english.cover_image} 
-                  alt={group.english.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-4">
-                  <div className="text-center mb-2">
-                    <h3 className="font-bold text-gray-800 text-sm">
-                      {group.english.month} {group.english.year}
-                    </h3>
-                    <p className="text-xs text-gray-500">(English)</p>
-                  </div>
-                  <h4 className="font-bold text-sm mb-2 line-clamp-2">{group.english.title}</h4>
-                  <p className="text-gray-600 text-xs mb-3 line-clamp-2">{group.english.description}</p>
-                  <button
-                    onClick={() => handlePreview(group.english)}
-                    className="w-full bg-blue-500 text-white py-2 px-3 rounded font-medium hover:bg-blue-600 transition-colors text-sm"
-                  >
-                    Download
-                  </button>
-                </div>
-              </div>
+          {/* Desktop Layout */}
+          <div className="hidden md:block">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              {groupedMagazines.map((group, index) => (
+                <React.Fragment key={index}>
+                  {/* English Magazine */}
+                  {group.english && (
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                      <img 
+                        src={group.english.cover_image} 
+                        alt={group.english.title}
+                        className="w-full h-48 object-cover"
+                        onError={(e) => {
+                          e.target.src = '/assets/magazines/default.png'
+                        }}
+                      />
+                      <div className="p-4">
+                        <div className="text-center mb-3">
+                          <h3 className="font-bold text-gray-800 text-sm">
+                            Current Affairs Magazine
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            {group.english.month} {group.english.year} (English)
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {group.english.file_size}
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          {group.english.preview_link && (
+                            <button
+                              onClick={() => handlePreview(group.english)}
+                              className="w-full bg-blue-500 text-white py-2 px-3 rounded font-medium hover:bg-blue-600 transition-colors text-sm flex items-center justify-center space-x-1"
+                            >
+                              <FiEye size={14} />
+                              <span>Preview</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDownload(group.english)}
+                            className="w-full bg-green-500 text-white py-2 px-3 rounded font-medium hover:bg-green-600 transition-colors text-sm flex items-center justify-center space-x-1"
+                          >
+                            <FiDownload size={14} />
+                            <span>Download</span>
+                          </button>
+                        </div>
 
-              {/* Hindi Magazine */}
-              <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden card-hover">
-                <img 
-                  src={group.hindi.cover_image} 
-                  alt={group.hindi.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-4">
-                  <div className="text-center mb-2">
-                    <h3 className="font-bold text-gray-800 text-sm">
-                      {group.hindi.month} {group.hindi.year}
-                    </h3>
-                    <p className="text-xs text-gray-500">(Hindi)</p>
-                  </div>
-                  <h4 className="font-bold text-sm mb-2 line-clamp-2">{group.hindi.title}</h4>
-                  <p className="text-gray-600 text-xs mb-3 line-clamp-2">{group.hindi.description}</p>
-                  <button
-                    onClick={() => handlePreview(group.hindi)}
-                    className="w-full bg-blue-500 text-white py-2 px-3 rounded font-medium hover:bg-blue-600 transition-colors text-sm"
-                  >
-                    Download
-                  </button>
-                </div>
-              </div>
-            </React.Fragment>
-          ))}
+                        {group.english.download_count > 0 && (
+                          <p className="text-xs text-gray-500 text-center mt-2">
+                            {group.english.download_count} downloads
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hindi Magazine */}
+                  {group.hindi && (
+                    <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
+                      <img 
+                        src={group.hindi.cover_image} 
+                        alt={group.hindi.title}
+                        className="w-full h-48 object-cover"
+                        onError={(e) => {
+                          e.target.src = '/assets/magazines/default.png'
+                        }}
+                      />
+                      <div className="p-4">
+                        <div className="text-center mb-3">
+                          <h3 className="font-bold text-gray-800 text-sm">
+                            करेंट अफेयर्स मैगज़ीन
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            {group.hindi.month} {group.hindi.year} (Hindi)
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {group.hindi.file_size}
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          {group.hindi.preview_link && (
+                            <button
+                              onClick={() => handlePreview(group.hindi)}
+                              className="w-full bg-blue-500 text-white py-2 px-3 rounded font-medium hover:bg-blue-600 transition-colors text-sm flex items-center justify-center space-x-1"
+                            >
+                              <FiEye size={14} />
+                              <span>Preview</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDownload(group.hindi)}
+                            className="w-full bg-green-500 text-white py-2 px-3 rounded font-medium hover:bg-green-600 transition-colors text-sm flex items-center justify-center space-x-1"
+                          >
+                            <FiDownload size={14} />
+                            <span>Download</span>
+                          </button>
+                        </div>
+
+                        {group.hindi.download_count > 0 && (
+                          <p className="text-xs text-gray-500 text-center mt-2">
+                            {group.hindi.download_count} downloads
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg">No magazines found matching your criteria</p>
+          <p className="text-gray-400 text-sm mt-2">Try adjusting your filters or check back later</p>
         </div>
-      </div>
+      )}
 
       {/* Preview Modal */}
       {showPreviewModal && selectedMagazine && <PreviewModal />}
