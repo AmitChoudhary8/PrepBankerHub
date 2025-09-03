@@ -78,7 +78,7 @@ function PDFFormModal({ pdf, onClose, onSave, topics }) {
       if (pdf) {
         // Update existing PDF
         const { error } = await supabase
-          .from('pdfs')
+          .from('pdf_resources')
           .update(dataToSave)
           .eq('id', pdf.id)
 
@@ -92,7 +92,7 @@ function PDFFormModal({ pdf, onClose, onSave, topics }) {
       } else {
         // Add new PDF
         const { error } = await supabase
-          .from('pdfs')
+          .from('pdf_resources')
           .insert([{
             ...dataToSave,
             created_by: (await supabase.auth.getUser()).data.user?.id
