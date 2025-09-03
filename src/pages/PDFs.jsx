@@ -27,50 +27,6 @@ function PDFs({ user }) {
     'Other'
   ]
 
-  // Sample PDF data (replace with Supabase data)
-  const samplePdfs = [
-    {
-      id: 1,
-      title: 'RBI Grade B Phase I - 2023 Question Paper',
-      description: 'Official question paper with solutions',
-      topic: 'PO',
-      google_drive_link: 'https://drive.google.com/file/d/sample1/view',
-      preview_link: 'https://drive.google.com/file/d/sample1/preview',
-      file_size: '15 MB',
-      download_count: 1250
-    },
-    {
-      id: 2,
-      title: 'IBPS PO Prelims Practice Set - Vol. 1',
-      description: '50 questions with detailed explanations',
-      topic: 'Prelims',
-      google_drive_link: 'https://drive.google.com/file/d/sample2/view',
-      preview_link: 'https://drive.google.com/file/d/sample2/preview',
-      file_size: '8 MB',
-      download_count: 980
-    },
-    {
-      id: 3,
-      title: 'IBPS PO Quants Set - 2024',
-      description: '50 questions with detailed explanations',
-      topic: 'Quants',
-      google_drive_link: 'https://drive.google.com/file/d/sample3/view',
-      preview_link: 'https://drive.google.com/file/d/sample3/preview',
-      file_size: '6 MB',
-      download_count: 750
-    },
-    {
-      id: 4,
-      title: 'General Awareness Digest - July 2024',
-      description: 'Monthly compilation of current affairs',
-      topic: 'General Awareness',
-      google_drive_link: 'https://drive.google.com/file/d/sample4/view',
-      preview_link: 'https://drive.google.com/file/d/sample4/preview',
-      file_size: '8 MB',
-      download_count: 2100
-    }
-  ]
-
   useEffect(() => {
     loadPdfs()
   }, [])
@@ -81,8 +37,18 @@ function PDFs({ user }) {
 
   const loadPdfs = async () => {
     try {
-      // Using sample data - later replace with Supabase query
-      setPdfs(samplePdfs)
+      const { data, error } = await supabase
+        .from('pdf_resources')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error loading PDFs:', error)
+        toast.error('Failed to load PDFs')
+      } else {
+        setPdfs(data || [])
+      }
       setLoading(false)
     } catch (error) {
       console.error('Error loading PDFs:', error)
@@ -96,7 +62,19 @@ function PDFs({ user }) {
 
     // Topic filter
     if (selectedTopic !== 'All') {
-      filtered = filtered.filter(pdf => pdf.topic === selectedTopic)
+      const topicMapping = {
+        'Quants': 'quants',
+        'English': 'english',
+        'Reasoning': 'reasoning',
+        'General Awareness': 'general_awareness',
+        'Prelims': 'prelims',
+        'Mains': 'mains',
+        'PO': 'po',
+        'Clerk': 'clerk',
+        'Insurance': 'insurance',
+        'Other': 'other'
+      }
+      filtered = filtered.filter(pdf => pdf.topic === topicMapping[selectedTopic])
     }
 
     // Search filter
@@ -111,19 +89,7 @@ function PDFs({ user }) {
 
   const getTopicImage = (topic) => {
     // Images will be stored at /assets/topics/{topic}.png
-    const topicImages = {
-      'Quants': '/assets/topics/quants.png',
-      'English': '/assets/topics/english.png',
-      'Reasoning': '/assets/topics/reasoning.png',
-      'General Awareness': '/assets/topics/general_awareness.png',
-      'Prelims': '/assets/topics/prelims.png',
-      'Mains': '/assets/topics/mains.png',
-      'PO': '/assets/topics/po.png',
-      'Clerk': '/assets/topics/clerk.png',
-      'Insurance': '/assets/topics/insurance.png',
-      'Other': '/assets/topics/other.png'
-    }
-    return topicImages[topic] || '/assets/topics/other.png'
+    return `/assets/topics/${topic}.png`
   }
 
   const handlePreview = (pdf) => {
@@ -142,17 +108,35 @@ function PDFs({ user }) {
     }
 
     try {
-      // Track download
-      // await supabase.from('pdf_downloads').insert({
-      //   user_id: user.id,
-      //   pdf_id: pdf.id
-      // })
+      // 1. Track download in analytics table
+      await supabase.from('download_analytics').insert([{
+        pdf_id: pdf.id,
+        user_id: user.id,
+        user_agent: navigator.userAgent
+      }])
       
-      // Open Google Drive download link
+      // 2. Increment download count using database function
+      await supabase.rpc('increment_pdf_downloads', {
+        pdf_uuid: pdf.id
+      })
+
+      // 3. Update local state
+      setPdfs(prevPdfs => 
+        prevPdfs.map(p => 
+          p.id === pdf.id 
+            ? { ...p, download_count: (p.download_count || 0) + 1 }
+            : p
+        )
+      )
+      
+      // 4. Open Google Drive download link
       window.open(pdf.google_drive_link, '_blank')
       toast.success('Download started!')
     } catch (error) {
-      toast.error('Download failed')
+      console.error('Error tracking download:', error)
+      // Still allow download even if tracking fails
+      window.open(pdf.google_drive_link, '_blank')
+      toast.success('Download started!')
     }
   }
 
