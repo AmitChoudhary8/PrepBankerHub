@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react'
-import { FiMessageSquare, FiUser, FiMail, FiSend, FiFileText, FiClock, FiCheckCircle, FiEye, FiAlertCircle } from 'react-icons/fi'
-import { supabase } from '../utils/supabase'
-import toast from 'react-hot-toast'
+import React, { useState, useEffect } from 'react';
+import { FiMessageSquare, FiUser, FiMail, FiSend, FiFileText, FiClock, FiCheckCircle, FiEye, FiAlertCircle } from 'react-icons/fi';
+import supabase from '../utils/supabase';
+import toast from 'react-hot-toast';
 
 function Request({ user }) {
   const [formData, setFormData] = useState({
     name: user?.full_name || '',
     email: user?.email || '',
-    request_type: 'pdf_request',
+    requesttype: 'pdf_request',
     subject: '',
     message: '',
-    exam_type: 'SBI PO'
-  })
-  const [loading, setLoading] = useState(false)
-  const [requestStatus, setRequestStatus] = useState(null)
-  const [userRequests, setUserRequests] = useState([])
-  const [debugInfo, setDebugInfo] = useState(null) // ✅ NEW: Debug state
+    examtype: 'SBI PO'
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [userRequests, setUserRequests] = useState([]);
+  const [debugInfo, setDebugInfo] = useState(null);
 
   const requestTypes = [
     { value: 'pdf_request', label: 'Request PDF/Study Material' },
@@ -23,108 +23,100 @@ function Request({ user }) {
     { value: 'suggestion', label: 'Suggestions' },
     { value: 'bug_report', label: 'Report Bug/Issue' },
     { value: 'other', label: 'Other' }
-  ]
+  ];
 
-  const examTypes = [
-    'SBI PO', 'SBI Clerk', 'IBPS PO', 'IBPS Clerk', 'RRB PO', 'RRB Clerk', 
-    'Insurance', 'RBI Grade B', 'NABARD', 'Other'
-  ]
+  const examTypes = ['SBI PO', 'SBI Clerk', 'IBPS PO', 'IBPS Clerk', 'RRB PO', 'RRB Clerk', 'Insurance', 'RBI Grade B', 'NABARD', 'Other'];
 
   // Fetch user's previous requests
   useEffect(() => {
-    if (user?.email) {
-      fetchUserRequests()
+    if (formData.email) {
+      fetchUserRequests();
     }
-  }, [user])
+  }, [formData.email]);
 
   const fetchUserRequests = async () => {
     try {
-      console.log('🔍 Fetching user requests for:', user?.email) // ✅ Debug log
-
+      console.log('Fetching user requests for:', formData.email);
       const { data, error } = await supabase
         .from('user_requests')
         .select('*')
-        .eq('email', user?.email)
+        .eq('email', formData.email)
         .order('created_at', { ascending: false })
-        .limit(5)
+        .limit(5);
 
       if (error) {
-        console.error('❌ Error fetching user requests:', error)
-        throw error
+        console.error('Error fetching user requests:', error);
+        throw error;
       }
       
-      console.log('✅ Fetched user requests:', data) // ✅ Debug log
-      setUserRequests(data || [])
+      console.log('Fetched user requests:', data);
+      setUserRequests(data || []);
     } catch (error) {
-      console.error('❌ Catch Error fetching user requests:', error)
+      console.error('Catch: Error fetching user requests:', error);
       setDebugInfo({
         action: 'fetch_requests',
-        error: error.message || JSON.stringify(error),
+        error: error.message,
         timestamp: new Date().toISOString()
-      })
+      });
     }
-  }
+  };
 
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
-  }
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     
     // Clear previous debug info
-    setDebugInfo(null)
+    setDebugInfo(null);
     
-    console.log('🚀 Form submission started with data:', formData) // ✅ Debug log
-    console.log('👤 User object:', user) // ✅ Debug log
-    
+    console.log('Form submission started with data:', formData);
+
     if (!formData.name || !formData.email || !formData.subject || !formData.message) {
-      toast.error('Please fill all required fields')
-      console.log('❌ Validation failed: Missing required fields')
-      return
+      toast.error('Please fill all required fields');
+      console.log('Validation failed: Missing required fields');
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
+
+    // Generate email-based user ID
+    const emailBasedUserId = btoa(formData.email + Date.now()).substring(0, 16);
     
     // Prepare insert data
     const insertData = {
-      user_id: user?.id || null,
+      user_id: user?.id || emailBasedUserId, // Use authenticated user ID or generate one
       name: formData.name,
       email: formData.email,
-      request_type: formData.request_type,
+      request_type: formData.requesttype,
       subject: formData.subject,
       message: formData.message,
-      exam_type: formData.request_type === 'pdf_request' ? formData.exam_type : null,
-      status: 'review',
+      exam_type: formData.requesttype === 'pdf_request' ? formData.examtype : null,
+      status: 'review', // Changed from 'pending' to 'review'
       admin_response: null
-    }
-    
-    console.log('📝 Inserting data:', insertData) // ✅ Debug log
-    
+    };
+
+    console.log('Inserting data:', insertData);
+
     try {
-      // Check if table exists
-      console.log('🔍 Checking Supabase connection...')
-      
       const { data, error } = await supabase
         .from('user_requests')
         .insert(insertData)
-        .select()
+        .select();
 
-      console.log('📊 Supabase response - Data:', data) // ✅ Debug log
-      console.log('📊 Supabase response - Error:', error) // ✅ Debug log
+      console.log('Supabase response - Data:', data);
+      console.log('Supabase response - Error:', error);
 
       if (error) {
-        console.error('❌ Supabase Insert Error Details:', {
+        console.error('Supabase Insert Error Details:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
           code: error.code,
-          full_error: error
-        })
+          fullError: error
+        });
         
         setDebugInfo({
           action: 'insert_request',
@@ -134,45 +126,49 @@ function Request({ user }) {
           hint: error.hint || 'No hint',
           timestamp: new Date().toISOString(),
           insertData: insertData
-        })
-        
+        });
+
         // Show specific error messages based on error code
         if (error.code === '42501') {
-          toast.error('Permission denied. Please check table policies or try logging in again.')
+          toast.error('Permission denied. Please check table policies or try logging in again.');
         } else if (error.code === '23505') {
-          toast.error('Duplicate entry. This request may already exist.')
+          toast.error('Duplicate entry. This request may already exist.');
         } else {
-          toast.error(`Failed to submit request: ${error.message}`)
+          toast.error(`Failed to submit request: ${error.message}`);
         }
         
-        setLoading(false)
-        return
+        setLoading(false);
+        return;
       }
 
-      console.log('✅ Request submitted successfully:', data)
-      toast.success('Request submitted successfully! We will review it soon.')
-      setRequestStatus('review')
+      console.log('Request submitted successfully:', data);
+      toast.success('Request submitted successfully! We will review it soon.');
       
+      // Store tracking ID for future reference
+      if (!user?.id) {
+        localStorage.setItem('user_tracking_id', emailBasedUserId);
+      }
+
       // Reset form
       setFormData({
         name: user?.full_name || '',
         email: user?.email || '',
-        request_type: 'pdf_request',
+        requesttype: 'pdf_request',
         subject: '',
         message: '',
-        exam_type: 'SBI PO'
-      })
+        examtype: 'SBI PO'
+      });
 
       // Refresh user requests
-      fetchUserRequests()
+      fetchUserRequests();
 
     } catch (error) {
-      console.error('❌ Handle Submit Catch Error Details:', {
+      console.error('Handle Submit Catch Error Details:', {
         message: error.message,
         name: error.name,
         stack: error.stack,
-        full_error: error
-      })
+        fullError: error
+      });
       
       setDebugInfo({
         action: 'submit_catch',
@@ -180,43 +176,42 @@ function Request({ user }) {
         name: error.name || 'No name',
         timestamp: new Date().toISOString(),
         insertData: insertData
-      })
+      });
       
-      toast.error(`Failed to submit request. Error: ${error.message || JSON.stringify(error)}`)
+      toast.error(`Failed to submit request. Error: ${error.message || JSON.stringify(error)}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case 'review':
-        return <FiEye className="text-orange-500" size={16} />
+        return <FiEye className="text-orange-500" size={16} />;
       case 'approved':
-        return <FiCheckCircle className="text-green-500" size={16} />
+        return <FiCheckCircle className="text-green-500" size={16} />;
       case 'completed':
-        return <FiCheckCircle className="text-blue-500" size={16} />
+        return <FiCheckCircle className="text-blue-500" size={16} />;
       default:
-        return <FiClock className="text-gray-500" size={16} />
+        return <FiClock className="text-gray-500" size={16} />;
     }
-  }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'review':
-        return 'bg-orange-100 text-orange-800'
+        return 'bg-orange-100 text-orange-800';
       case 'approved':
-        return 'bg-green-100 text-green-800'
+        return 'bg-green-100 text-green-800';
       case 'completed':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-blue-100 text-blue-800';
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gray-100 text-gray-800';
     }
-  }
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4">
-      
       {/* Debug Information Panel - Only show in development or when there's an error */}
       {debugInfo && (
         <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -259,13 +254,12 @@ function Request({ user }) {
       {/* Request Form */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mb-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          
           {/* Personal Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 <FiUser className="inline mr-2" size={16} />
-                Full Name *
+                Full Name
               </label>
               <input
                 type="text"
@@ -277,11 +271,10 @@ function Request({ user }) {
                 required
               />
             </div>
-
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">
                 <FiMail className="inline mr-2" size={16} />
-                Email Address *
+                Email Address
               </label>
               <input
                 type="email"
@@ -298,16 +291,16 @@ function Request({ user }) {
           {/* Request Type */}
           <div>
             <label className="block text-gray-700 text-sm font-medium mb-2">
-              Request Type *
+              Request Type
             </label>
             <select
-              name="request_type"
-              value={formData.request_type}
+              name="requesttype"
+              value={formData.requesttype}
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               required
             >
-              {requestTypes.map(type => (
+              {requestTypes.map((type) => (
                 <option key={type.value} value={type.value}>
                   {type.label}
                 </option>
@@ -316,19 +309,19 @@ function Request({ user }) {
           </div>
 
           {/* Exam Type (show only for PDF requests) */}
-          {formData.request_type === 'pdf_request' && (
+          {formData.requesttype === 'pdf_request' && (
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-2">
-                Exam Type *
+                Exam Type
               </label>
               <select
-                name="exam_type"
-                value={formData.exam_type}
+                name="examtype"
+                value={formData.examtype}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 required
               >
-                {examTypes.map(exam => (
+                {examTypes.map((exam) => (
                   <option key={exam} value={exam}>
                     {exam}
                   </option>
@@ -340,7 +333,7 @@ function Request({ user }) {
           {/* Subject */}
           <div>
             <label className="block text-gray-700 text-sm font-medium mb-2">
-              Subject *
+              Subject
             </label>
             <input
               type="text"
@@ -357,7 +350,7 @@ function Request({ user }) {
           <div>
             <label className="block text-gray-700 text-sm font-medium mb-2">
               <FiFileText className="inline mr-2" size={16} />
-              Detailed Message *
+              Detailed Message
             </label>
             <textarea
               name="message"
@@ -381,16 +374,6 @@ function Request({ user }) {
               <span>{loading ? 'Submitting...' : 'Submit Request'}</span>
             </button>
           </div>
-
-          {/* Status Display */}
-          {requestStatus && (
-            <div className="mt-4 text-center">
-              <div className={`inline-flex items-center px-3 py-2 rounded-full text-sm font-medium ${getStatusColor(requestStatus)}`}>
-                {getStatusIcon(requestStatus)}
-                <span className="ml-2">Status: {requestStatus.charAt(0).toUpperCase() + requestStatus.slice(1)}</span>
-              </div>
-            </div>
-          )}
         </form>
       </div>
 
@@ -408,11 +391,13 @@ function Request({ user }) {
                     <span className="ml-1">{request.status.charAt(0).toUpperCase() + request.status.slice(1)}</span>
                   </div>
                 </div>
+                
                 <p className="text-gray-600 text-sm mb-2">{request.message.substring(0, 100)}...</p>
                 <div className="flex justify-between text-xs text-gray-500">
                   <span>Type: {request.request_type.replace('_', ' ').toUpperCase()}</span>
                   <span>{new Date(request.created_at).toLocaleDateString()}</span>
                 </div>
+                
                 {request.admin_response && (
                   <div className="mt-3 bg-blue-50 p-3 rounded-lg">
                     <p className="text-sm font-medium text-blue-800">Admin Response:</p>
@@ -436,7 +421,6 @@ function Request({ user }) {
             Request specific study materials, practice sets, or previous year questions
           </p>
         </div>
-
         <div className="bg-green-50 rounded-lg p-6 text-center">
           <div className="text-green-500 mb-3">
             <FiMessageSquare size={32} className="mx-auto" />
@@ -446,7 +430,6 @@ function Request({ user }) {
             Share your experience and suggestions to help us improve our platform
           </p>
         </div>
-
         <div className="bg-purple-50 rounded-lg p-6 text-center">
           <div className="text-purple-500 mb-3">
             <FiSend size={32} className="mx-auto" />
@@ -462,10 +445,10 @@ function Request({ user }) {
       <div className="mt-8 bg-gray-50 rounded-lg p-6 text-center">
         <h3 className="text-lg font-bold text-gray-800 mb-2">Need immediate help?</h3>
         <p className="text-gray-600 mb-4">
-          For urgent queries, you can also reach us directly at:
+          For urgent queries, you can also reach us directly at
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-6">
-          <a 
+          <a
             href="mailto:info.amitsihag@gmail.com"
             className="text-blue-600 hover:text-blue-800 flex items-center space-x-2"
           >
@@ -475,7 +458,7 @@ function Request({ user }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default Request
+export default Request;
