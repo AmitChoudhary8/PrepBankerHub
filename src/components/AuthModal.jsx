@@ -11,6 +11,7 @@ function AuthModal({ setShowAuthModal, setUser }) {
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showBlockModal, setShowBlockModal] = useState(false)
+  const [debugInfo, setDebugInfo] = useState('')
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -30,9 +31,38 @@ function AuthModal({ setShowAuthModal, setUser }) {
     }))
   }
 
+  // Generate unique 9-digit user ID
+  const generateUserId = async () => {
+    const length = 9
+    let userId = ''
+    let attempts = 0
+    
+    while (attempts < 10) {
+      userId = Array.from({length}, () => Math.floor(Math.random() * 10)).join('')
+      
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('user_id')
+        .eq('user_id', userId)
+        .single()
+      
+      if (error && error.code === 'PGRST116') {
+        // User ID doesn't exist, good to use
+        setDebugInfo(prev => prev + `\n✅ Generated unique user_id: ${userId}`)
+        return userId
+      }
+      
+      attempts++
+      setDebugInfo(prev => prev + `\n⚠️ User ID ${userId} exists, trying again...`)
+    }
+    
+    throw new Error('Could not generate unique user ID')
+  }
+
   // Updated Login function with block check
   const handleLogin = async (e) => {
     e.preventDefault()
+    setDebugInfo('🔄 Starting login process...')
     
     if (!formData.email || !formData.password) {
       toast.error('Please fill in email and password')
@@ -41,40 +71,48 @@ function AuthModal({ setShowAuthModal, setUser }) {
 
     setLoading(true)
     try {
+      setDebugInfo(prev => prev + '\n🔐 Attempting Supabase authentication...')
       const { data, error } = await signIn(formData.email, formData.password)
       
       if (error) {
+        setDebugInfo(prev => prev + `\n❌ Auth error: ${error.message}`)
         toast.error('Problem during login: ' + error.message)
       } else {
-        // Check if user is blocked from Supabase users table
+        setDebugInfo(prev => prev + '\n✅ Authentication successful, checking block status...')
+        
+        // Check if user is blocked from admin_users table
         const { data: userData, error: userError } = await supabase
-          .from('users')
+          .from('admin_users')
           .select('is_blocked')
           .eq('email', formData.email)
           .single()
 
         if (userError) {
+          setDebugInfo(prev => prev + `\n❌ Error checking user status: ${userError.message}`)
           toast.error('Error checking user status. Please try again later.')
         } else if (userData?.is_blocked) {
-          // Show block message modal
+          setDebugInfo(prev => prev + '\n🚫 User is blocked, showing block modal')
           setShowAuthModal(false)
           setShowBlockModal(true)
         } else {
+          setDebugInfo(prev => prev + '\n✅ Login successful!')
           toast.success('Successfully logged in!')
           setUser(data.user)
           setShowAuthModal(false)
         }
       }
     } catch (error) {
+      setDebugInfo(prev => prev + `\n❌ Catch error: ${error.message}`)
       toast.error('Login error')
     } finally {
       setLoading(false)
     }
   }
 
-  // Updated Signup function with Supabase users table insert
+  // Updated Signup function with admin_users table insert
   const handleSignup = async (e) => {
     e.preventDefault()
+    setDebugInfo('🔄 Starting signup process...')
     
     // Validation
     if (!formData.fullName || !formData.email || !formData.mobileNumber || !formData.password || !formData.confirmPassword) {
@@ -94,6 +132,7 @@ function AuthModal({ setShowAuthModal, setUser }) {
 
     setLoading(true)
     try {
+      setDebugInfo(prev => prev + '\n🔐 Creating Supabase Auth account...')
       const { data, error } = await signUp(
         formData.email, 
         formData.password, 
@@ -103,12 +142,20 @@ function AuthModal({ setShowAuthModal, setUser }) {
       )
       
       if (error) {
+        setDebugInfo(prev => prev + `\n❌ Auth signup error: ${error.message}`)
         toast.error('Problem during signup: ' + error.message)
       } else {
-        // Insert user data into users table
+        setDebugInfo(prev => prev + '\n✅ Auth account created, generating user ID...')
+        
+        // Generate unique user ID
+        const userId = await generateUserId()
+        
+        setDebugInfo(prev => prev + '\n💾 Inserting user data into admin_users table...')
+        // Insert user data into admin_users table
         const { error: insertError } = await supabase
-          .from('users')
+          .from('admin_users')
           .insert({
+            user_id: userId,
             full_name: formData.fullName,
             email: formData.email,
             mobile_number: formData.mobileNumber,
@@ -117,15 +164,18 @@ function AuthModal({ setShowAuthModal, setUser }) {
           })
 
         if (insertError) {
+          setDebugInfo(prev => prev + `\n❌ Insert error: ${insertError.message}`)
           console.error('Error saving user data:', insertError)
           toast.error('Account created but error saving profile data')
         } else {
+          setDebugInfo(prev => prev + '\n✅ Profile data saved successfully!')
           toast.success('Account created! Please check your email for verification (also check spam folder)')
         }
         
         setShowAuthModal(false)
       }
     } catch (error) {
+      setDebugInfo(prev => prev + `\n❌ Catch error: ${error.message}`)
       toast.error('Signup error')
     } finally {
       setLoading(false)
@@ -220,8 +270,8 @@ function AuthModal({ setShowAuthModal, setUser }) {
             </button>
           </div>
 
-          {/* Form Content */}
-          <div className="p-6">
+          {/* Form Content - Made Scrollable for Signup */}
+          <div className={`${!isLogin ? 'max-h-[500px] overflow-y-auto' : ''} p-6`}>
             
             {/* Show Forgot Password Form or Login/Signup */}
             {showForgot ? (
@@ -379,6 +429,22 @@ function AuthModal({ setShowAuthModal, setUser }) {
                     </div>
                   )}
                 </form>
+
+                {/* Debug Info Panel */}
+                {debugInfo && (
+                  <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+                    <details>
+                      <summary className="cursor-pointer text-sm font-medium">Debug Info</summary>
+                      <pre className="mt-2 text-xs whitespace-pre-wrap">{debugInfo}</pre>
+                      <button 
+                        onClick={() => setDebugInfo('')}
+                        className="mt-2 text-xs text-red-500 hover:text-red-700"
+                      >
+                        Clear Debug
+                      </button>
+                    </details>
+                  </div>
+                )}
               </>
             )}
           </div>
