@@ -1,3 +1,5 @@
+return <h1>Hello World (Debug Mode)</h1>
+
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
@@ -29,7 +31,7 @@ import TermsAndConditions from './components/TermsAndConditions'
 import ErrorBoundary from './components/ErrorBoundary'
 
 // Supabase utils
-import { getCurrentUser } from '././utils/supabase'
+import { getCurrentUser } from './utils/supabase'
 
 function App() {
   const [user, setUser] = useState(null)
