@@ -10,10 +10,15 @@ import Calendar from './pages/Calendar'
 import Request from './pages/Request'
 import ResetPassword from './pages/ResetPassword'
 
+// Blog pages - Add these imports
+import BlogsList from './pages/BlogsList'
+import BlogPost from './pages/BlogPost'
+
 // Admin components import karne hain
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import PDFManagement from './pages/admin/PDFManagement'
+import AdminBlogManagement from './pages/admin/AdminBlogManagement' // Add this
 
 // Components import karne hain
 import Layout from './components/Layout'
@@ -94,6 +99,19 @@ function App() {
             </Layout>
           } />
 
+          {/* Blog Routes - Add these */}
+          <Route path="/blogs" element={
+            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
+              <BlogsList />
+            </Layout>
+          } />
+          
+          <Route path="/blogs/:slug" element={
+            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
+              <BlogPost />
+            </Layout>
+          } />
+
           <Route path="/termandconditions" element={
             <TermsAndConditions />
           } />
@@ -103,6 +121,7 @@ function App() {
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admindash" element={<AdminDashboard />} />
           <Route path="/admin/pdfs" element={<PDFManagement />} />
+          <Route path="/admin/blogs" element={<AdminBlogManagement />} /> {/* Add this */}
         </Routes>
 
         {/* Login/Signup Modal */}
