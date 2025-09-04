@@ -29,7 +29,7 @@ import TermsAndConditions from './components/TermsAndConditions'
 import ErrorBoundary from './components/ErrorBoundary'
 
 // Supabase utils
-import { getCurrentUser } from './utils/supabase'
+import { getCurrentUser } from '././utils/supabase'
 
 function App() {
   const [user, setUser] = useState(null)
