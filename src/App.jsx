@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 
-// Pages import karne hain
+// Pages imports
 import Home from './pages/Home'
 import PDFs from './pages/PDFs'
 import Magazine from './pages/Magazine'
@@ -10,49 +10,47 @@ import Calendar from './pages/Calendar'
 import Request from './pages/Request'
 import ResetPassword from './pages/ResetPassword'
 
-// Blog pages - Add these imports
+// Blog pages
 import BlogsList from './pages/BlogsList'
 import BlogPost from './pages/BlogPost'
 
-// Admin components import karne hain
+// Admin components
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 import PDFManagement from './pages/admin/PDFManagement'
-import AdminBlogManagement from './pages/admin/AdminBlogManagement' // Add this
+import AdminBlogManagement from './pages/admin/AdminBlogManagement'  // Added
 
-// Components import karne hain
+// Components
 import Layout from './components/Layout'
 import AuthModal from './components/AuthModal'
 import TermsAndConditions from './components/TermsAndConditions'
 
-// Supabase import karna hai
+// ErrorBoundary import
+import ErrorBoundary from './components/ErrorBoundary'
+
+// Supabase utils
 import { getCurrentUser } from './utils/supabase'
 
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showModal, setShowModal] = useState(false)
 
-  // User check karne ke liye jab app load ho
   useEffect(() => {
+    async function checkUser() {
+      try {
+        const { data, error } = await getCurrentUser()
+        if (data?.user) setUser(data.user)
+      } catch (error) {
+        console.log('User fetch error:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
     checkUser()
   }, [])
 
-  const checkUser = async () => {
-    try {
-      const { data, error } = await getCurrentUser()
-      if (data.user) {
-        setUser(data.user)
-      }
-    } catch (error) {
-      console.log('User check error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Loading screen
-  if (loading) {
+  if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -61,90 +59,101 @@ function App() {
         </div>
       </div>
     )
-  }
 
   return (
-    <Router>
-      <div className="min-h-screen">
-        
-        <Routes>
-          {/* Main Pages with Layout */}
-          <Route path="/" element={
-            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
-              <Home />
-            </Layout>
-          } />
-          
-          <Route path="/PDFs" element={
-            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
-              <PDFs user={user} />
-            </Layout>
-          } />
-          
-          <Route path="/magazine" element={
-            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
-              <Magazine user={user} />
-            </Layout>
-          } />
-          
-          <Route path="/calendar" element={
-            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
-              <Calendar user={user} />
-            </Layout>
-          } />
-          
-          <Route path="/request" element={
-            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
-              <Request />
-            </Layout>
-          } />
+    <ErrorBoundary>
+      <Router>
+        <div className="min-h-screen">
+          <Routes>
+            {/* Using Layout */}
+            <Route
+              path="/"
+              element={
+                <Layout user={user} setUser={setUser} setShowModal={setShowModal}>
+                  <Home />
+                </Layout>
+              }
+            />
+            <Route
+              path="/PDFs"
+              element={
+                <Layout user={user} setUser={setUser} setShowModal={setShowModal}>
+                  <PDFs user={user} />
+                </Layout>
+              }
+            />
+            <Route
+              path="/magazine"
+              element={
+                <Layout user={user} setUser={setUser} setShowModal={setShowModal}>
+                  <Magazine />
+                </Layout>
+              }
+            />
+            <Route
+              path="/calendar"
+              element={
+                <Layout user={user} setUser={setUser} setShowModal={setShowModal}>
+                  <Calendar />
+                </Layout>
+              }
+            />
+            <Route
+              path="/request"
+              element={
+                <Layout user={user} setUser={setUser} setShowModal={setShowModal}>
+                  <Request />
+                </Layout>
+              }
+            />
+            <Route path="/termandconditions" element={<TermsAndConditions />} />
 
-          {/* Blog Routes - Add these */}
-          <Route path="/blogs" element={
-            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
-              <BlogsList />
-            </Layout>
-          } />
-          
-          <Route path="/blogs/:slug" element={
-            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
-              <BlogPost />
-            </Layout>
-          } />
+            {/* Blog Routes */}
+            <Route
+              path="/blogs"
+              element={
+                <Layout user={user} setUser={setUser} setShowModal={setShowModal}>
+                  <BlogsList />
+                </Layout>
+              }
+            />
+            <Route
+              path="/blogs/:slug"
+              element={
+                <Layout user={user} setUser={setUser} setShowModal={setShowModal}>
+                  <BlogPost />
+                </Layout>
+              }
+            />
 
-          <Route path="/termandconditions" element={
-            <TermsAndConditions />
-          } />
+            {/* Admin Routes */}
+            <Route path="/adminLogin" element={<AdminLogin />} />
+            <Route path="/admindash" element={<AdminDashboard />} />
+            <Route path="/admin/blogs" element={<AdminBlogManagement />} />
+            <Route path="/admin/pdfs" element={<PDFManagement />} />
 
-          {/* Special Pages without Layout */}
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/admin-login" element={<AdminLogin />} />
-          <Route path="/admindash" element={<AdminDashboard />} />
-          <Route path="/admin/pdfs" element={<PDFManagement />} />
-          <Route path="/admin/blogs" element={<AdminBlogManagement />} /> {/* Add this */}
-        </Routes>
+            {/* Others */}
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* Login/Signup Modal */}
-        {showAuthModal && (
-          <AuthModal 
-            setShowAuthModal={setShowAuthModal}
-            setUser={setUser}
+          </Routes>
+
+          {/* Footer */}
+          <Footer />
+
+          {/* Auth modal */}
+          {showModal && <AuthModal setShowModal={setShowModal} setUser={setUser} />}
+
+          {/* Toasts */}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: { background: '#000', color: '#fff' },
+            }}
           />
-        )}
-
-        {/* Toast Notifications */}
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 3000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-          }}
-        />
-      </div>
-    </Router>
+        </div>
+      </Router>
+    </ErrorBoundary>
   )
 }
 
