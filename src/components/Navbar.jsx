@@ -87,12 +87,6 @@ function Navbar({ user, setUser, setShowAuthModal, onMenuClick }) {
               Study Material
             </Link>
             <Link 
-              to="/blogs" 
-              className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
-            >
-              Blog
-            </Link>
-            <Link 
               to="/request" 
               className="text-gray-700 hover:text-blue-600 font-medium transition-colors"
             >
