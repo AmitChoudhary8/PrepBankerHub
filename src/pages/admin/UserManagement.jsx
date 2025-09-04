@@ -33,7 +33,7 @@ function UserManagement() {
     setLoading(true);
     try {
       let query = supabase
-        .from('users')
+        .from('admin_users')  // Changed from 'users' to 'admin_users'
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -61,7 +61,8 @@ function UserManagement() {
     user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.mobile_number?.includes(searchTerm) ||
-    user.exam_preparing_for?.toLowerCase().includes(searchTerm.toLowerCase())
+    user.exam_preparing_for?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.user_id?.includes(searchTerm)  // Added user_id search
   );
 
   // Block/Unblock User by Email
@@ -75,7 +76,7 @@ function UserManagement() {
     try {
       // First, check if user exists
       const { data: existingUser, error: fetchError } = await supabase
-        .from('users')
+        .from('admin_users')  // Changed from 'users' to 'admin_users'
         .select('id, full_name, is_blocked')
         .eq('email', blockEmail.toLowerCase())
         .single();
@@ -89,7 +90,7 @@ function UserManagement() {
       const newBlockStatus = !existingUser.is_blocked;
       
       const { error } = await supabase
-        .from('users')
+        .from('admin_users')  // Changed from 'users' to 'admin_users'
         .update({ is_blocked: newBlockStatus })
         .eq('email', blockEmail.toLowerCase());
 
@@ -116,7 +117,7 @@ function UserManagement() {
     setBlockLoading(true);
     try {
       const { data: existingUser, error: fetchError } = await supabase
-        .from('users')
+        .from('admin_users')  // Changed from 'users' to 'admin_users'
         .select('id, is_blocked')
         .eq('email', email.toLowerCase())
         .single();
@@ -129,7 +130,7 @@ function UserManagement() {
       const newBlockStatus = !existingUser.is_blocked;
 
       const { error } = await supabase
-        .from('users')
+        .from('admin_users')  // Changed from 'users' to 'admin_users'
         .update({ is_blocked: newBlockStatus })
         .eq('email', email.toLowerCase());
 
@@ -151,14 +152,14 @@ function UserManagement() {
     try {
       // Get all users for export
       const { data: allUsers, error } = await supabase
-        .from('users')
+        .from('admin_users')  // Changed from 'users' to 'admin_users'
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const csvHeaders = [
-        'ID',
+        'User ID',  // Added User ID column
         'Full Name', 
         'Email',
         'Mobile Number',
@@ -170,7 +171,7 @@ function UserManagement() {
       ];
 
       const csvData = allUsers.map(user => [
-        user.id,
+        user.user_id || '',  // Added user_id
         user.full_name || '',
         user.email || '',
         user.mobile_number || '',
@@ -341,7 +342,7 @@ function UserManagement() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, email, phone, or exam..."
+              placeholder="Search by name, email, phone, exam, or user ID..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -417,7 +418,7 @@ function UserManagement() {
                             {user.full_name || 'N/A'}
                           </div>
                           <div className="text-sm text-gray-500">
-                            ID: {user.id.slice(0, 8)}...
+                            ID: {user.user_id || 'N/A'}
                           </div>
                         </div>
                       </div>
