@@ -8,21 +8,20 @@ import PDFs from './pages/PDFs'
 import Magazine from './pages/Magazine'
 import Calendar from './pages/Calendar'
 import Request from './pages/Request'
-import ResetPassword from './pages/ResetPassword'  // NEW - Added
+import ResetPassword from './pages/ResetPassword'
 
 // Admin components import karne hain
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
+import PDFManagement from './pages/admin/PDFManagement'
 
 // Components import karne hain
-import Navbar from './components/Navbar'
-import Footer from './components/Footer'
+import Layout from './components/Layout'
 import AuthModal from './components/AuthModal'
+import TermsAndConditions from './components/TermsAndConditions'
 
 // Supabase import karna hai
 import { getCurrentUser } from './utils/supabase'
-
-import PDFManagement from './pages/admin/PDFManagement'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -61,31 +60,50 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen flex flex-col">
-        {/* Header/Navbar */}
-        <Navbar 
-          user={user} 
-          setUser={setUser}
-          setShowAuthModal={setShowAuthModal}
-        />
+      <div className="min-h-screen">
+        
+        <Routes>
+          {/* Main Pages with Layout */}
+          <Route path="/" element={
+            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
+              <Home />
+            </Layout>
+          } />
+          
+          <Route path="/PDFs" element={
+            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
+              <PDFs user={user} />
+            </Layout>
+          } />
+          
+          <Route path="/magazine" element={
+            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
+              <Magazine user={user} />
+            </Layout>
+          } />
+          
+          <Route path="/calendar" element={
+            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
+              <Calendar user={user} />
+            </Layout>
+          } />
+          
+          <Route path="/request" element={
+            <Layout user={user} setUser={setUser} setShowAuthModal={setShowAuthModal}>
+              <Request />
+            </Layout>
+          } />
 
-        {/* Main Content */}
-        <main className="flex-1">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/PDFs" element={<PDFs user={user} />} />
-            <Route path="/magazine" element={<Magazine user={user} />} />
-            <Route path="/calendar" element={<Calendar user={user} />} />
-            <Route path="/request" element={<Request />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin-login" element={<AdminLogin />} />
-            <Route path="/admindash" element={<AdminDashboard />} />
-            <Route path="/admin/pdfs" element={<PDFManagement />} />
-          </Routes>
-        </main>
+          <Route path="/termandconditions" element={
+            <TermsAndConditions />
+          } />
 
-        {/* Footer */}
-        <Footer />
+          {/* Special Pages without Layout */}
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/admindash" element={<AdminDashboard />} />
+          <Route path="/admin/pdfs" element={<PDFManagement />} />
+        </Routes>
 
         {/* Login/Signup Modal */}
         {showAuthModal && (
