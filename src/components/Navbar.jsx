@@ -1,10 +1,10 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { FiUser, FiLogOut } from 'react-icons/fi'
+import { FiUser, FiLogOut, FiMenu } from 'react-icons/fi'
 import { signOut } from '../utils/supabase'
 import toast from 'react-hot-toast'
 
-function Navbar({ user, setUser, setShowAuthModal }) {
+function Navbar({ user, setUser, setShowAuthModal, onMenuClick }) {
 
   // Logout function
   const handleLogout = async () => {
@@ -26,16 +26,27 @@ function Navbar({ user, setUser, setShowAuthModal }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
-          {/* Logo Only - No Site Name */}
-          <Link to="/" className="flex items-center">
-            <img 
-              src="/assets/logo.png" 
-              alt="PrepBankerHub" 
-              className="h-12 w-auto"
-            />
-          </Link>
+          {/* Left Side - Hamburger + Logo */}
+          <div className="flex items-center space-x-4">
+            {/* Hamburger Menu Button */}
+            <button
+              onClick={onMenuClick}
+              className="p-2 rounded-md text-gray-600 hover:text-blue-600 hover:bg-gray-100 md:hidden"
+            >
+              <FiMenu size={20} />
+            </button>
 
-          {/* Mobile Menu - Hidden on desktop */}
+            {/* Logo */}
+            <Link to="/" className="flex items-center">
+              <img 
+                src="/assets/logo.png" 
+                alt="PrepBankerHub" 
+                className="h-12 w-auto"
+              />
+            </Link>
+          </div>
+
+          {/* Mobile Menu - Right Side */}
           <div className="md:hidden">
             {user ? (
               <div className="flex items-center space-x-2">
